@@ -694,6 +694,62 @@ def solve_network(n, policy, penetration, tech_palette):
 
         n.model.add_constraints(lhs == target*total_load, name="country_res_constraints")
 
+    def system_res_constraints(n, year, config) -> None:
+        """
+        Set a system-wide national RES constraints based on NECPs.
+
+        Here CI load is not counted within country_load ->
+        this avoids avoid big overshoot of national RES targets due to CI-procured portfolio. Note that EU RE directive counts corporate PPA within NECPs.
+        """
+        country_targets = config[f"res_target_{year}"]
+
+        grid_res_techs = config["global"]["grid_res_techs"]
+        weights = n.snapshot_weightings["generators"]
+
+        for ct in country_targets.keys():
+            country_buses = n.buses.index[(n.buses.index.str[:2] == ct)]
+            if country_buses.empty:
+                continue
+
+            country_loads = n.loads.index[n.loads.bus.isin(country_buses)]
+            country_res_gens = n.generators.index[
+                n.generators.bus.isin(country_buses)
+                & n.generators.carrier.isin(grid_res_techs)
+            ]
+            country_res_links = n.links.index[
+                n.links.bus1.isin(country_buses) & n.links.carrier.isin(grid_res_techs)
+            ]
+            country_res_storage_units = n.storage_units.index[
+                n.storage_units.bus.isin(country_buses)
+                & n.storage_units.carrier.isin(grid_res_techs)
+            ]
+
+            gens = n.model["Generator-p"].loc[:, country_res_gens] * weights
+            links = (
+                n.model["Link-p"].loc[:, country_res_links]
+                * n.links.loc[country_res_links, "efficiency"]
+                * weights
+            )
+            sus = (
+                n.model["StorageUnit-p_dispatch"].loc[:, country_res_storage_units]
+                * weights
+            )
+            lhs = gens.sum() + sus.sum() + links.sum()
+
+            target = config[f"res_target_{year}"][f"{ct}"]
+            total_load = (n.loads_t.p_set[country_loads].sum(axis=1) * weights).sum()
+
+            print(
+                f"country RES constraint for {ct} {target} and total load {round(total_load/1e6, 2)} TWh"
+            )
+            logger.info(
+                f"country RES constraint for {ct} {target} and total load {round(total_load/1e6, 2)} TWh"
+            )
+
+            n.model.add_constraints(
+                lhs == target * total_load, name=f"{ct}_res_constraint"
+            )
+
 
     def add_battery_constraints(n):
         """
@@ -715,7 +771,8 @@ def solve_network(n, policy, penetration, tech_palette):
     def extra_functionality(n, snapshots):
 
         add_battery_constraints(n)
-        country_res_constraints(n)
+        # country_res_constraints(n)
+        system_res_constraints(n, year, snakemake.config)
 
         if policy == "ref":
             print("no target set")
