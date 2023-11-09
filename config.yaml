@@ -5,33 +5,34 @@ results_dir: 'results'
 costs_dir: '../technology-data/outputs'
 
 # from ../pypsa-eur-sec/results/<run>/prenetworks-brownfield
-n_2025: 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2025.nc'
+n_2025: 'input/elec2013_s_37_lv1.0__3H-B-solar+p3_2025.nc'
 n_2030: 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc'
 
 
 ###################
 # Scenario controls
 
-run: 'test'
+run: 'validationEU'
 
 #wildcards
 scenario:
-  policy:  ["res100", "ref", "res100", "cfe80", "cfe85", "cfe90", "cfe95", "cfe98", "cfe99", "cfe100"]
+  policy:  ["ref", "res100", "cfe85", "cfe95", "cfe98", "cfe99", "cfe100"] # "ref", "res100", "cfe80", "cfe85", "cfe90", "cfe95", "cfe98", "cfe99", "cfe100"]
   palette: [ "p1", # onwind + solar + battery 
-             "p2", # onwind + solar + battery + LDES
-             "p3", # onwind + solar + battery + LDES + clean dispatchable gen
+             # "p2", # onwind + solar + battery + LDES
+             # "p3", # onwind + solar + battery + LDES + clean dispatchable gen
             ]
   zone: [ "IE",
-          "DK",
-          "DE",
-          "NL"
+          # "DK",
+          # "DE",
+          # "NL"
         ]
-  year: ['2030', 
-         '2030'
+  year: [ # '2030', 
+         '2025'
          ] # controls both the brownfield fleet and tech costs projection
   participation: ['10', 
-                  '25'
+                  #'25'
                   ] #share [%] of CI load per zone following 247-CFE approach
+  weather_year: '2013' # years of weather data to use for renewable capacity factor time series
 
 #data center
 ci:
@@ -122,17 +123,39 @@ nodes_with_nucsban: ["DE1 0"]
 policy_2025: ['BE', 'SE', 'PT', 'AT', 'FR', 'GB']
 policy_2030: ['BE', 'SE', 'PT', 'AT', 'FR', 'GB', 'IT', 'IE', 'HU', 'MK', 'DK', 'GR', 'NL', 'FI', 'RS', 'ES', 'SK', 'DE']
 #source: https://ec.europa.eu/info/energy-climate-change-environment/implementation-eu-countries
-#data for NL is dummy
+ 
+# renewable target policies (RES share in electricity consumption)
+# source: https://ec.europa.eu/info/energy-climate-change-environment/implementation-eu-countries 
 res_target_2025:
   IE: 0.47
-  DK: 0.9
-  DE: 0.45
-  NL: 0.35
+  DK: 0.85  # p.3 https://ens.dk/sites/ens.dk/files/Basisfremskrivning/kf23_sektornotat_8b_forbrug_af_el.pdf
+  DE: 0.55
+  NL: 0.49   # interpolated from 2020 wind+solar 19%, bioenergy 6% to 2030 target
+  AT: 0.90   # 79% overall renewables in 2020 -> target 100% 2030
+  BE: 0.323  # p.63 https://energy.ec.europa.eu/system/files/2020-09/be_final_necp_parta_en_0.pdf, 11.156 GWh = 32.3%
+  BG: 0.21   # p. 59 Figure 10 https://energy.ec.europa.eu/system/files/2020-06/bg_final_necp_main_en_0.pdf
+  CZ: 0.14   # 4% wind+solar 2020, 12% renewable overall (2020)
+  HR: 0.56   # interpolated Table 2-1 p.54 https://energy.ec.europa.eu/system/files/2020-01/hr_final_necp_main_en_0.pdf
+  FR: 0.32   # 10% wind+solar 2020, 23% renewable overall
+  GB: 0.535  # interpolated from 2020: 29% wind + solar 2020, 42% renewable overall to 2030 target
+  PL: 0.245  # 11% wind + solar 2020, 17% renewable overall
+  ES: 0.588  # linear interpolated share 46.6% in 2021 targer 74% in 2030
+  PT: 0.69   # p.41 Table 9 https://energy.ec.europa.eu/system/files/2020-06/pt_final_necp_main_en_0.pdf
 res_target_2030:
   IE: 0.7
-  DK: 1.1
-  DE: 0.8
-  NL: 0.5
+  DK: 1.17  # https://ens.dk/sites/ens.dk/files/Basisfremskrivning/kf23_sektornotat_8b_forbrug_af_el.pdf
+  DE: 0.80  # https://www.bmwk.de/Redaktion/EN/Downloads/Energy/0406_ueberblickspapier_osterpaket_en.html
+  NL: 0.73  # https://energy.ec.europa.eu/system/files/2021-01/staff_working_document_assessment_necp_netherlands_en_0.pdf
+  AT: 1.0   # https://windeurope.org/newsroom/news/austria-aims-to-have-100-renewable-electricity-by-2030/
+  BE: 0.37  # https://energy.ec.europa.eu/system/files/2020-09/be_final_necp_parta_en_0.pdf
+  BG: 0.27  # p.59 Figure 10 https://energy.ec.europa.eu/system/files/2020-06/bg_final_necp_main_en_0.pdf
+  HR: 0.64  # p.54 Table 2-1 https://energy.ec.europa.eu/system/files/2020-01/hr_final_necp_main_en_0.pdf
+  CZ: 0.17
+  FR: 0.4
+  GB: 0.65  # https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/938539/NIS_Report_Web_Accessible.pdf
+  PL: 0.32  # table 1.1 https://iea.blob.core.windows.net/assets/b9ea5a7d-3e41-4318-a69e-f7d456ebb118/Poland2022.pdf
+  ES: 0.74  # p.10 https://energy.ec.europa.eu/system/files/2021-01/staff_working_document_assessment_necp_spain_en_0.pdf
+  PT: 0.8   # p.41 Table 9 https://energy.ec.europa.eu/system/files/2020-06/pt_final_necp_main_en_0.pdf
 
 
 solving:
@@ -142,7 +165,7 @@ solving:
     n_iterations: 2  #iterations with CFE factor
   solver:
     name: gurobi
-    threads: 4
+    threads: 6
     method: 2 # barrier
     crossover: 0
     BarConvTol: 1.e-6
