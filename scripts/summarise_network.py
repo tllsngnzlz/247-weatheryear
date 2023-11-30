@@ -5,6 +5,31 @@ import yaml
 from solve_network import palette, geoscope, timescope
 from _helpers import override_component_attrs
 
+def calculate_and_save_rldc(n):
+    """
+    Calculate the Residual Load Duration Curve (RLDC) and save to a CSV file.
+
+    :param n: The network object from PyPSA containing generation and load data.
+    :param year: The year for which the calculation is being done.
+    """
+    # Extracting renewable generators
+    fluctuating_renewables = ['solar', 'onwind', 'offwind-ac', 'offwind-dc', 'solar rooftop']
+    
+    # index of all country buses in the network
+    country_buses = n.loads.index[n.loads.carrier == 'electricity']
+    
+    residual_load_t = pd.DataFrame()
+    # iterate over all country electricity buses and calculate the residual load
+    for cbus in country_buses:
+        p_demand_t = n.loads_t.p[cbus]
+        generation_t = n.generators_t.p[n.generators.index[n.generators.carrier.isin(fluctuating_renewables)]].sum(axis=1)
+        residual_load = p_demand_t - generation_t
+        residual_load = residual_load.multiply(n.snapshot_weightings["generators"],axis=0).sort_values(ascending=False).reset_index(drop=True)
+        residual_load_t[cbus] = residual_load.copy()
+    residual_load_t['total'] = residual_load_t.sum(axis=1)
+    residual_load_t.to_csv(snakemake.output.csv)  #Save to file
+        
+        
 
 def summarise_network(n, policy, tech_palette):
 
@@ -379,4 +404,5 @@ if __name__ == "__main__":
     
 
     summarise_network(n, policy, tech_palette)
+    calculate_and_save_rldc(n)
 

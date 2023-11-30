@@ -118,7 +118,8 @@ rule summarise_network:
         network=RDIR + "/networks/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.nc",
 	    grid_cfe=RDIR + "/networks/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.csv"
     output:
-        yaml=RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml"
+        yaml=RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml",
+        csv=RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}_ldrc.csv"
     threads: 2
     resources: mem_mb=2000
     script: 'scripts/summarise_network.py'
