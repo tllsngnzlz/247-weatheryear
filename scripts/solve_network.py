@@ -274,32 +274,42 @@ def shutdown_lineexp(n):
     n.links.loc[n.links.carrier=='DC', 'p_nom_extendable'] = False
 
 
-def limit_resexp(n, year):
-    '''
-    limit expansion of renewable technologies per zone and carrier type 
-    as a ratio of max increase to 2021 capacity fleet
-    (additional to zonal place availability constraint)
-    '''
-    name = snakemake.config['ci']['name']
-    ratio = snakemake.config['global'][f'limit_res_exp_{year}']
+def limit_resexp(n: pypsa.Network, year: str) -> None:
+    """
+    Limit expansion of renewable technologies per zone and carrier type
+    as a ratio of max increase to 2021 capacity fleet (additional to zonal place availability constraint)
+
+    Args:
+        n: The network object to be modified.
+        year: The year of optimisation based on config setting.
+        config: config.yaml settings
+
+    Returns:
+        None
+    """
+    config = snakemake.config
+    ratio = config["global"][f"limit_res_exp_{year}"]
+
+    name = config["ci"]["name"]
     node = geoscope(zone, area)['node']
+    mask_ci = n.generators.index.str.contains(f"EU|{name}")
+    system_gens = n.generators[~mask_ci]
 
-    res = n.generators[(~n.generators.index.str.contains('EU')) & (~n.generators.index.str.contains(name)) & (~n.generators.index.str.contains(f'{node}'))]
-    fleet = res[res.p_nom_extendable==False]
+    fleet = system_gens.groupby(
+        [system_gens.bus.str[:2], system_gens.carrier]
+    ).p_nom.sum()
+    fleet = fleet.rename(lambda x: x.split("-")[0], level=1).groupby(level=[0, 1]).sum()
+    ct_national_target = list(config[f"res_target_{year}"].keys()) + ["EU"]
 
-    #fleet.groupby([fleet.carrier, fleet.bus]).p_nom.sum()
-    off_c = fleet[fleet.index.str.contains('offwind')].carrier + '-' + \
-            fleet[fleet.index.str.contains('offwind')].index.str.extract('(ac)|(dc)').fillna('').sum(axis=1).values
-    
-    fleet["carrier_s"] = off_c.reindex(fleet.index).fillna(fleet.carrier)
+    fleet.drop(ct_national_target, errors="ignore", level=0, inplace=True)
 
-    for bus in fleet.bus.unique():
-        for carrier in ['solar', 'onwind', 'offwind-ac', 'offwind-dc']:
-            p_nom_fleet = 0
-            p_nom_fleet = fleet.loc[(fleet.bus == bus) & (fleet.carrier_s == carrier), "p_nom"].sum()
-            #print(f'bus: {bus}, carrier: {carrier}' ,p_nom_fleet)
-            n.generators.loc[(n.generators.p_nom_extendable==True) & (n.generators.bus == bus) & \
-                             (n.generators.carrier == carrier), "p_nom_max"] = ratio * p_nom_fleet
+    for ct, carrier in fleet.index:
+        gen_i = (
+            (n.generators.p_nom_extendable)
+            & (n.generators.bus.str[:2] == ct)
+            & (n.generators.carrier.str.contains(carrier))
+        )
+        n.generators.loc[gen_i, "p_nom_max"] = ratio * fleet.loc[ct, carrier]
 
 
 def nuclear_policy(n):
@@ -821,7 +831,7 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         snakemake = mock_snakemake('solve_network', 
-                    policy="cfe100", palette='p1', zone='IE', year='2025', participation='10')
+                    policy="res100", palette='p1', zone='IE', year='2025', participation='10', weather_year='2013')
 
     logging.basicConfig(filename=snakemake.log.python, level=snakemake.config['logging_level'])
 
@@ -867,7 +877,7 @@ if __name__ == "__main__":
         nuclear_policy(n)
         coal_policy(n)
         biomass_potential(n)
-        #limit_resexp(n,year)
+        limit_resexp(n,year)
 
         cost_parametrization(n)
         load_profile(n, zone, profile_shape)
