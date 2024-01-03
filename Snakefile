@@ -99,7 +99,7 @@ if config['solve_network'] == 'solve':
     rule solve_network:
         input:
             network2030 = 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc',
-            network2025 = 'input/elec{weather_year}_s_37_lv1.0__3H-B-solar+p3_2025.nc',
+            network2025 = config['n_2025'],
             costs2030=CDIR + "/costs_2030.csv",
             costs2025=CDIR + "/costs_2025.csv"
         output:

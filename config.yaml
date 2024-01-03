@@ -5,26 +5,26 @@ results_dir: 'results'
 costs_dir: '../technology-data/outputs'
 
 # from ../pypsa-eur-sec/results/<run>/prenetworks-brownfield
-n_2025: 'input/elec2013_s_37_lv1.0__3H-B-solar+p3_2025.nc'
+n_2025: 'input/elec{weather_year}_s_37_lv1.0__3H-B-solar+p3_2025.nc'
 n_2030: 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc'
 
 
 ###################
 # Scenario controls
 
-run: 'validationEU'
+run: '01_02_validationEU_limitres'
 
 #wildcards
 scenario:
-  policy:  ["ref", "res100", "cfe85", "cfe95", "cfe98", "cfe99", "cfe100"] # "ref", "res100", "cfe80", "cfe85", "cfe90", "cfe95", "cfe98", "cfe99", "cfe100"]
+  policy:  ["ref", "res100", "cfe95", "cfe98"] # "cfe80", "cfe85", "cfe90", "cfe95", "cfe98", "cfe99", "cfe100"]
   palette: [ "p1", # onwind + solar + battery 
              # "p2", # onwind + solar + battery + LDES
              # "p3", # onwind + solar + battery + LDES + clean dispatchable gen
             ]
   zone: [ "IE",
-          # "DK",
-          # "DE",
-          # "NL"
+          #"DK",
+          #"DE",
+          #"NL"
         ]
   year: [ # '2030', 
          '2025'
@@ -165,7 +165,7 @@ solving:
     n_iterations: 2  #iterations with CFE factor
   solver:
     name: gurobi
-    threads: 6
+    threads: 5
     method: 2 # barrier
     crossover: 0
     BarConvTol: 1.e-6
