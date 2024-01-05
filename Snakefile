@@ -37,27 +37,59 @@ def parse_year_wildcard(w):
 
 rule merge_all_plots:
     input: 
-        expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/{weather_year}/SUMMARY.pdf", **config['scenario'])
+        expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/{weather_year}/SUMMARY.pdf",
+        participation=config["scenario"]["participation"],
+        year=config["scenario"]["year"],
+        zone=config["scenario"]["zone"],
+        palette=config["scenario"]["palette"],
+        weather_year=parse_year_wildcard(config["scenario"]["weather_year"])
+        )
 
 
 rule plot_summary_all_networks:
     input: 
-        expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/{weather_year}/used.pdf", **config['scenario'])
+        expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/{weather_year}/used.pdf",
+        participation=config["scenario"]["participation"],
+        year=config["scenario"]["year"],
+        zone=config["scenario"]["zone"],
+        palette=config["scenario"]["palette"],
+        weather_year=parse_year_wildcard(config["scenario"]["weather_year"])
+        )
 
 
 rule make_summary_all_networks:
     input: 
-        expand(RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/{weather_year}/summary.csv", **config['scenario'])
+        expand(RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/{weather_year}/summary.csv", 
+        participation=config["scenario"]["participation"],
+        year=config["scenario"]["year"],
+        zone=config["scenario"]["zone"],
+        palette=config["scenario"]["palette"],
+        weather_year=parse_year_wildcard(config["scenario"]["weather_year"])
+        )
 
 
 rule summarise_all_networks:
     input: 
-        expand(RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml", **config['scenario'])
+        expand(RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml", 
+        participation=config["scenario"]["participation"],
+        year=config["scenario"]["year"],
+        zone=config["scenario"]["zone"],
+        palette=config["scenario"]["palette"],
+        weather_year=parse_year_wildcard(config["scenario"]["weather_year"]),
+        policy=config["scenario"]["policy"]
+        )
 
 
 rule solve_all_networks:
     input: 
-        expand(RDIR + "/networks/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.nc", **config['scenario'])
+        expand(RDIR + "/networks/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.nc", 
+        participation=config["scenario"]["participation"],
+        year=config["scenario"]["year"],
+        zone=config["scenario"]["zone"],
+        palette=config["scenario"]["palette"],
+        weather_year=parse_year_wildcard(config["scenario"]["weather_year"]),
+        policy=config["scenario"]["policy"]
+        )
 
 
 rule merge_plots:
@@ -86,8 +118,14 @@ rule plot_summary:
 
 rule make_summary:
     input:
-        expand(RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml",
-               **config['scenario'])
+        expand(RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml",                    
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"],
+            weather_year=parse_year_wildcard(config["scenario"]["weather_year"]),
+            policy=config["scenario"]["policy"]
+            )
     output:
         summary=RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/{weather_year}/summary.csv"
     threads: 2
