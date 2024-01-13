@@ -8,7 +8,7 @@ def summarise_scalars():
 
     df = pd.DataFrame()
 
-    fns = list(filter(lambda k: ('{}'.format(participation+'/'+year+'/'+zone+'/'+tech_palette)) in k, snakemake.input))
+    fns = list(filter(lambda k: ('{}'.format(participation+'/'+year+'/'+zone+'/'+tech_palette+'/'+weather_year)) in k, snakemake.input["yaml"]))
 
     for fn in fns:
         policy = fn[fn.rfind("/")+1:-5]
@@ -26,9 +26,10 @@ if __name__ == "__main__":
     # Detect running outside of snakemake and mock snakemake for testing
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('make_summary', palette='p1', zone='IE', year='2025',  participation='10')    
+        snakemake = mock_snakemake('make_summary', palette='p1', zone='IE', year='2025',  participation='10', weather_year='2013')    
     
     # When running via snakemake
+    weather_year = snakemake.wildcards.weather_year
     tech_palette = snakemake.wildcards.palette
     zone = snakemake.wildcards.zone
     year = snakemake.wildcards.year

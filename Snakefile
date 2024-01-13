@@ -118,14 +118,14 @@ rule plot_summary:
 
 rule make_summary:
     input:
-        expand(RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml",                    
-            participation=config["scenario"]["participation"],
-            year=config["scenario"]["year"],
-            zone=config["scenario"]["zone"],
-            palette=config["scenario"]["palette"],
-            weather_year=parse_year_wildcard(config["scenario"]["weather_year"]),
-            policy=config["scenario"]["policy"]
-            )
+        yaml=lambda wildcards: expand(RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml",
+        participation=wildcards.participation,
+        year=wildcards.year,
+        zone=wildcards.zone,
+        palette=wildcards.palette,
+        weather_year=wildcards.weather_year,
+        policy=config["scenario"]["policy"]
+        )
     output:
         summary=RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/{weather_year}/summary.csv"
     threads: 2
