@@ -48,10 +48,17 @@ def mock_snakemake(rulename, **wildcards):
     from packaging.version import Version, parse
 
     script_dir = Path(__file__).parent.resolve()
-    #comment for a debug
-    assert Path.cwd().resolve() == script_dir, \
-      f'mock_snakemake has to be run from the repository scripts directory {script_dir}'
-    os.chdir(script_dir.parent)
+    root_dir = script_dir.parent
+    
+    user_in_script_dir = Path.cwd().resolve() == script_dir
+    if user_in_script_dir:
+        os.chdir(root_dir)
+    elif Path.cwd().resolve() != root_dir:
+        raise RuntimeError(
+            "mock_snakemake has to be run from the repository root"
+            f" {root_dir} or scripts directory {script_dir}"
+        )
+        
     for p in sm.SNAKEFILE_CHOICES:
         if os.path.exists(p):
             snakefile = p
