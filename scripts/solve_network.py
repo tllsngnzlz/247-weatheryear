@@ -538,6 +538,70 @@ def add_ci(n, participation, year):
               lifetime=n.links.at[f"{node} H2 Fuel Cell"+"-{}".format(year), "lifetime"]
               )
 
+def fix_network(n):
+    fix_dict = snakemake.config['fixed-capacity']
+    name = snakemake.config['ci']['name']
+    if fix_dict['background-grid']:
+        """import capacities from solved network from fix_dict['path'] and overwrite p_nom values of network with 
+        p_nom_opt values from the solved network. only overwrite generators, links and storage_units in network, which are extendable and do not 
+        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False."""
+        n_opt = pypsa.Network(fix_dict['path'])
+        #Generators aka renewable capacities
+        fix_generators = n.generators.index[~n.generators.index.str.contains(name) & ~n.generators.index.str.contains("EU") & n.generators.p_nom_extendable]
+        try:
+            n.generators.p_nom[fix_generators] = n_opt.generators.p_nom_opt[fix_generators]
+            n.generators.p_nom_extendable[fix_generators] = False
+            logger.info(f"Overwrote capacity of generators {fix_generators} with values from {fix_dict['path']}")
+            print(f"Overwrote capacity of generators {fix_generators} with values from {fix_dict['path']}")
+        except KeyError as e:
+            raise KeyError(f"Could not overwrite capacity. Generators that differ: {set(fix_generators) ^ set(n_opt.generators.p_nom_opt[fix_generators].index)}") from e
+        #Links aka fossil nuclear capacities H2 and battery charger
+        fix_links = n.links.index[~n.links.index.str.contains(name) & ~n.links.bus0.str.contains("EU gas") & n.links.p_nom_extendable]
+        try:
+            n.links.p_nom[fix_links] = n_opt.links.p_nom_opt[fix_links]
+            n.links.p_nom_extendable[fix_links] = False
+        except KeyError as e:
+            raise KeyError(f"Could not overwrite capacity. Links that differ: {set(fix_links) ^ set(n_opt.links.p_nom_opt[fix_links].index)}") from e
+        #Storage units aka hydro storage capacities 
+        fix_storage_units = n.storage_units.index[~n.storage_units.index.str.contains(name) & n.storage_units.p_nom_extendable]
+        try:
+            n.storage_units.p_nom[fix_storage_units] = n_opt.storage_units.p_nom_opt[fix_storage_units]
+            n.storage_units.p_nom_extendable[fix_storage_units] = False
+        except KeyError as e:
+            raise KeyError(f"Could not overwrite capacity. Storage units that differ: {set(fix_storage_units) ^ set(n_opt.storage_units.p_nom_opt[fix_storage_units].index)}") from e
+        #stores aka H2 and battery storage capacities  
+        fix_stores = n.stores.index[~n.stores.index.str.contains(name) & ~n.stores.index.str.contains("EU|co2") & n.stores.e_nom_extendable]
+        try:
+            n.stores.e_nom[fix_stores] = n_opt.stores.e_nom_opt[fix_stores]
+            n.stores.e_nom_extendable[fix_stores] = False
+            # Allow more emissions by doubling the nominal capacity of the CO2 atmosphere store, if present
+            if "co2 atmosphere" in n.stores.index:
+                n.stores.at["co2 atmosphere", "e_nom"] *= 2
+        except KeyError as e:
+            raise KeyError(f"Could not overwrite capacity. Stores that differ: {set(fix_stores) ^ set(n_opt.stores.e_nom_opt[fix_stores].index)}") from e
+        
+    if fix_dict['ci-node-to-zero']:
+        """overwrite p_nom, e_nom and load values to zero. only overwrite generators, links and storages in network, which 
+        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False."""
+        #Generators aka renewable capacities
+        fix_generators = n.generators.index[n.generators.index.str.contains(name)]
+        n.generators.p_nom[fix_generators] = 0.
+        n.generators.p_nom_extendable[fix_generators] = False
+        #Links aka fossil and nuclear capacities
+        fix_links = n.links.index[n.links.index.str.contains(name)]
+        n.links.p_nom[fix_links] = 0.
+        n.links.p_nom_extendable[fix_links] = False
+        #Stores aka H2 and battery storage capacities
+        fix_stores = n.stores.index[n.stores.index.str.contains(name)]
+        n.stores.e_nom[fix_stores] = 0.
+        n.stores.e_nom_extendable[fix_stores] = False
+        #load aka C&I load
+        fix_load =  [col for col in n.loads_t.p_set.columns if name in col]
+        n.loads_t.p_set[fix_load] = 0.
+        
+
+        
+
 
 def calculate_grid_cfe(n):
 
@@ -645,7 +709,6 @@ def solve_network(n, policy, penetration, tech_palette):
         discharge_sum = (n.model['Link-p'].loc[:,storage_dischargers] * 
                          n.links.loc[storage_dischargers, "efficiency"] * weights).sum()
         charge_sum = -1*(n.model['Link-p'].loc[:,storage_chargers] * weights).sum()
-        n.links.loc[storage_dischargers,"efficiency"]
         ci_export = n.model['Link-p'].loc[:,[name + " export"]]
         ci_import = n.model['Link-p'].loc[:,[name + " import"]] 
         grid_sum = (
@@ -710,6 +773,8 @@ def solve_network(n, policy, penetration, tech_palette):
 
         Here CI load is not counted within country_load ->
         this avoids avoid big overshoot of national RES targets due to CI-procured portfolio. Note that EU RE directive counts corporate PPA within NECPs.
+
+        deactivates the constraint if background grid has fixed capacity to avoid infeasablity
         """
         country_targets = config[f"res_target_{year}"]
 
@@ -749,16 +814,18 @@ def solve_network(n, policy, penetration, tech_palette):
             target = config[f"res_target_{year}"][f"{ct}"]
             total_load = (n.loads_t.p_set[country_loads].sum(axis=1) * weights).sum()
 
-            print(
-                f"country RES constraint for {ct} {target} and total load {round(total_load/1e6, 2)} TWh"
-            )
-            logger.info(
-                f"country RES constraint for {ct} {target} and total load {round(total_load/1e6, 2)} TWh"
-            )
+            #only add constraint if background grid has no fixed capacity to avoid infeasability
+            if not snakemake.config['fixed-capacity']['background-grid']:
+                print(
+                    f"country RES constraint for {ct} {target} and total load {round(total_load/1e6, 2)} TWh"
+                )
+                logger.info(
+                    f"country RES constraint for {ct} {target} and total load {round(total_load/1e6, 2)} TWh"
+                )
 
-            n.model.add_constraints(
-                lhs == target * total_load, name=f"{ct}_res_constraint"
-            )
+                n.model.add_constraints(
+                    lhs == target * total_load, name=f"{ct}_res_constraint"
+                )
 
 
     def add_battery_constraints(n):
@@ -831,7 +898,7 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         snakemake = mock_snakemake('solve_network', 
-                    policy="res100", palette='p1', zone='IE', year='2025', participation='10', weather_year='2013')
+                    policy="res100", palette='p1', zone='DE', year='2025', participation='10', weather_year='2013')
 
     logging.basicConfig(filename=snakemake.log.python, level=snakemake.config['logging_level'])
 
@@ -882,6 +949,7 @@ if __name__ == "__main__":
         cost_parametrization(n)
         load_profile(n, zone, profile_shape)
         add_ci(n, participation, year)
+        fix_network(n)
 
         solve_network(n, policy, penetration, tech_palette)
 

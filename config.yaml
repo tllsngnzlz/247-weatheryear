@@ -12,14 +12,14 @@ n_2030: 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc'
 ###################
 # Scenario controls
 
-run: '01_28-EU'
+run: '02_18-EU'
 
 #wildcards
 scenario:
   policy:  ["ref", "res100", "cfe95", "cfe100"] # "cfe80", "cfe85", "cfe90", "cfe95", "cfe98", "cfe99", "cfe100"]
   palette: ["p1", # onwind + solar + battery 
             "p2", # onwind + solar + battery + LDES
-             # "p3", # onwind + solar + battery + LDES + clean dispatchable gen
+            # "p3", # onwind + solar + battery + LDES + clean dispatchable gen
             ]
   zone: [ #"IE",
          #"DK",
@@ -45,6 +45,10 @@ ci:
   #"EU" -> keeps the whole European power system (full ENTSO-E area)
 area: "EU"
 
+fixed-capacity: 
+  background-grid: False # overwrites and fixes the capacities with values from network in path
+  path: 'input/solved/1982ref.nc' #1982 is 90% quantile of worst cfe score. 2003 is worst
+  ci-node-to-zero: True #sets all ci node capacities, and load to 0 and fixes it.
 
 ###################
 # Fixed settings
