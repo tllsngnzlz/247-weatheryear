@@ -92,6 +92,40 @@ rule solve_all_networks:
         )
 
 
+rule compare_all_weatheryears:
+    input:
+        plots = expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_investment_comparison.pdf",
+                       participation=config["scenario"]["participation"],
+                       year=config["scenario"]["year"],
+                       zone=config["scenario"]["zone"],
+                       palette=config["scenario"]["palette"],
+                       weather_year=parse_year_wildcard(config["scenario"]["weather_year"])),
+        cfe_plots = expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_cfe_comparison.pdf",
+                           participation=config["scenario"]["participation"],
+                           year=config["scenario"]["year"],
+                           zone=config["scenario"]["zone"],
+                           palette=config["scenario"]["palette"],
+                           weather_year=parse_year_wildcard(config["scenario"]["weather_year"]))
+
+
+
+rule compare_weatheryears:
+    input: 
+        summary_files=expand(RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/{weather_year}/summary.csv", 
+        participation=config["scenario"]["participation"],
+        year=config["scenario"]["year"],
+        zone=config["scenario"]["zone"],
+        palette=config["scenario"]["palette"],
+        weather_year=parse_year_wildcard(config["scenario"]["weather_year"])
+        )
+    output: 
+        plot_invest=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_investment_comparison.pdf",
+        plot_cfe=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_cfe_comparison.pdf"
+    params:
+        parent_directory=RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/"  # Directory to scan for summary.csv files
+    script: 
+        "scripts/compare_weatheryears.py"
+
 rule merge_plots:
     input:
         used=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/{weather_year}/used.pdf",
