@@ -115,7 +115,7 @@ rule compare_weatheryears:
         participation=config["scenario"]["participation"],
         year=config["scenario"]["year"],
         zone=config["scenario"]["zone"],
-        palette=config["scenario"]["palette"],
+        palette='{palette}', 
         weather_year=parse_year_wildcard(config["scenario"]["weather_year"])
         )
     output: 

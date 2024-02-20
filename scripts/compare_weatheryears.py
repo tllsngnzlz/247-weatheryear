@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 def concatenate_summary_files(summary_files):
     dfs = []
@@ -78,7 +79,7 @@ def plot_system_invest(df, output_path, tech_colors):
     
     fig, axes = plt.subplots(len(scenarios), 1, figsize=(18, 6))
     # Ensure axes is always an iterable (list of Axes objects)
-    if not isinstance(axes, list):
+    if not isinstance(axes, np.ndarray):
         axes = [axes]
 
     for scenario_idx, scenario in enumerate(scenarios):
@@ -100,8 +101,9 @@ def plot_system_invest(df, output_path, tech_colors):
         # set the index to the preferred order
         sorted_df = sorted_df.reindex(preferred_order)
         # Plot years next to each other with columns touching
-        sorted_df.T.plot(kind='bar', stacked=True, color=tech_colors, width=1 ,ax=axes[scenario_idx], legend=(scenario_idx==0), )
-        axes[scenario_idx].set_title(scenario)
+        ax = axes[scenario_idx]
+        sorted_df.T.plot(kind='bar', stacked=True, color=tech_colors, width=1 ,ax=ax, legend=(scenario_idx==0), )
+        ax.set_title(scenario)
         
         # Only add legend to the first subplot to avoid repetition
         if scenario_idx == 0:
@@ -126,17 +128,17 @@ def plot_system_cfe(df, output_path):
     
     fig2, axes2 = plt.subplots(len(scenarios), 1, figsize=(18, 6))
         # Ensure axes is always an iterable (list of Axes objects)
-    if not isinstance(axes2, list):
+    if not isinstance(axes2, np.ndarray):
         axes2 = [axes2]
 
     for scenario_idx, scenario in enumerate(scenarios):
         # Sum values across all variables for each year and scenario
         sorted_df = ldf.groupby(level='year').sum().sort_values(by=scenario, ascending=True)[scenario]
 
-
+        ax = axes2[scenario_idx]
         # Plot years next to each other with columns touching
-        sorted_df.plot(kind='bar', color='purple',ax=axes2[scenario_idx], legend=(scenario_idx==0), )
-        axes2[scenario_idx].set_title(scenario)
+        sorted_df.plot(kind='bar', color='purple',ax=ax, legend=(scenario_idx==0), )
+        ax.set_title(scenario)
         
         # Only add legend to the first subplot to avoid repetition
         if scenario_idx == 0:
