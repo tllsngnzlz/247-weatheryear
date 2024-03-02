@@ -549,10 +549,12 @@ def fix_network(n):
         #Generators aka renewable capacities
         fix_generators = n.generators.index[~n.generators.index.str.contains(name) & ~n.generators.index.str.contains("EU") & n.generators.p_nom_extendable]
         try:
+            old_values = n.generators.p_nom[fix_generators]
             n.generators.p_nom[fix_generators] = n_opt.generators.p_nom_opt[fix_generators]
             n.generators.p_nom_extendable[fix_generators] = False
-            logger.info(f"Overwrote capacity of generators {fix_generators} with values from {fix_dict['path']}")
-            print(f"Overwrote capacity of generators {fix_generators} with values from {fix_dict['path']}")
+            changed_generators = zip(fix_generators , old_values, n.generators.p_nom[fix_generators])
+            for generator, old_value, new_value in changed_generators:
+                print(f"Overwrote and fixed capacity of generator {generator}: {old_value} -> {new_value}")
         except KeyError as e:
             raise KeyError(f"Could not overwrite capacity. Generators that differ: {set(fix_generators) ^ set(n_opt.generators.p_nom_opt[fix_generators].index)}") from e
         #Links aka fossil nuclear capacities H2 and battery charger
