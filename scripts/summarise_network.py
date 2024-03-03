@@ -13,20 +13,24 @@ def calculate_and_save_rldc(n):
     :param year: The year for which the calculation is being done.
     """
     # Extracting renewable generators
-    fluctuating_renewables = ['solar', 'onwind', 'offwind-ac', 'offwind-dc', 'solar rooftop']
+    fluctuating_renewables = ['solar', 'onwind', 'offwind', 'offwind-ac', 'offwind-dc', 'solar rooftop']
     
-    # index of all country buses in the network
-    country_buses = n.loads.index[n.loads.carrier == 'electricity']
+    # index of all buses (countries and CI) in the network 
+    country_buses = n.loads.index
     
     residual_load_t = pd.DataFrame()
     # iterate over all country electricity buses and calculate the residual load
     for cbus in country_buses:
         p_demand_t = n.loads_t.p[cbus]
-        generation_t = n.generators_t.p[n.generators.index[n.generators.carrier.isin(fluctuating_renewables)]].sum(axis=1)
+        generation_t = n.generators_t.p.loc[:, n.generators.index[(n.generators.carrier.isin(fluctuating_renewables)) & (n.generators.bus == cbus)]].sum(axis=1)
         residual_load = p_demand_t - generation_t
         residual_load = residual_load.multiply(n.snapshot_weightings["generators"],axis=0).sort_values(ascending=False).reset_index(drop=True)
         residual_load_t[cbus] = residual_load.copy()
-    residual_load_t['total'] = residual_load_t.sum(axis=1)
+    p_demand_t = n.loads_t.p.sum(axis=1)
+    generation_t = n.generators_t.p[n.generators.index[n.generators.carrier.isin(fluctuating_renewables)]].sum(axis=1)
+    residual_load = p_demand_t - generation_t
+    residual_load = residual_load.multiply(n.snapshot_weightings["generators"],axis=0).sort_values(ascending=False).reset_index(drop=True)
+    residual_load_t['total'] = residual_load.copy()
     residual_load_t.to_csv(snakemake.output.csv)  #Save to file
         
         
@@ -373,7 +377,7 @@ if __name__ == "__main__":
     # Detect running outside of snakemake and mock snakemake for testing
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('summarise_network', policy="ref", palette='p3', zone='DE', year='2025', participation='10')
+        snakemake = mock_snakemake('summarise_network', policy="ref", palette='p2', zone='DE', year='2025', participation='10', weather_year='1980')
 
     #Wildcards
     policy = snakemake.wildcards.policy[:3]
