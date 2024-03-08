@@ -95,34 +95,71 @@ rule solve_all_networks:
 rule compare_all_weatheryears:
     input:
         plots = expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_investment_comparison.pdf",
-                       participation=config["scenario"]["participation"],
-                       year=config["scenario"]["year"],
-                       zone=config["scenario"]["zone"],
-                       palette=config["scenario"]["palette"],
-                       weather_year=parse_year_wildcard(config["scenario"]["weather_year"])),
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"],
+            weather_year=parse_year_wildcard(config["scenario"]["weather_year"])),
         cfe_plots = expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_cfe_comparison.pdf",
-                           participation=config["scenario"]["participation"],
-                           year=config["scenario"]["year"],
-                           zone=config["scenario"]["zone"],
-                           palette=config["scenario"]["palette"],
-                           weather_year=parse_year_wildcard(config["scenario"]["weather_year"]))
-
-
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"],
+            weather_year=parse_year_wildcard(config["scenario"]["weather_year"])),
+        objective_plots = expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/objective_comparison.pdf",
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"],
+            weather_year=parse_year_wildcard(config["scenario"]["weather_year"])),
+        summary = expand(RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/summary_weather_years.csv",
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"]),
+        rldc = expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/rldc_comparison.pdf",
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"]),
+        rldc_csv = expand(RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/summary_rldc.csv",
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"]),
+        plot_pick = expand(RDIR + "/plots/{participation}/{year}/{zone}/{palette}/plot_pick.pdf",
+            participation=config["scenario"]["participation"],
+            year=config["scenario"]["year"],
+            zone=config["scenario"]["zone"],
+            palette=config["scenario"]["palette"])
 
 rule compare_weatheryears:
     input: 
         summary_files=expand(RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/{weather_year}/summary.csv", 
-        participation=config["scenario"]["participation"],
-        year=config["scenario"]["year"],
-        zone=config["scenario"]["zone"],
-        palette='{palette}', 
+        participation='{participation}',
+        year='{year}',
+        zone='{zone}',
+        palette='{palette}',
         weather_year=parse_year_wildcard(config["scenario"]["weather_year"])
+        ),
+        rldc_files=expand(RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}_rldc.csv",
+        participation='{participation}',
+        year='{year}',
+        zone='{zone}',
+        palette='{palette}',
+        weather_year=parse_year_wildcard(config["scenario"]["weather_year"]),
+        policy=config["scenario"]["policy"]
         )
+
     output: 
+        summary_csv=RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/summary_weather_years.csv",
         plot_invest=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_investment_comparison.pdf",
-        plot_cfe=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_cfe_comparison.pdf"
-    params:
-        parent_directory=RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/"  # Directory to scan for summary.csv files
+        plot_cfe=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/system_cfe_comparison.pdf",
+        plot_objective=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/objective_comparison.pdf",
+        plot_rldc=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/rldc_comparison.pdf",
+        rldc_csv=RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/summary_rldc.csv",
+        pick_csv=RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/summary_pick.csv",
+        plot_pick=RDIR + "/plots/{participation}/{year}/{zone}/{palette}/plot_pick.pdf"
     script: 
         "scripts/compare_weatheryears.py"
 
@@ -191,7 +228,7 @@ rule summarise_network:
 	    grid_cfe=RDIR + "/networks/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.csv"
     output:
         yaml=RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}.yaml",
-        csv=RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}_ldrc.csv"
+        csv=RDIR + "/summaries/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}_rldc.csv"
     threads: 2
     resources: mem_mb=2000
     script: 'scripts/summarise_network.py'

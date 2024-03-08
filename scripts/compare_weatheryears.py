@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 import numpy as np
 
 def concatenate_summary_files(summary_files):
@@ -151,18 +153,120 @@ def plot_system_cfe(df, output_path):
     plt.tight_layout()
     plt.savefig(output_path)
 
+def plot_objective(df, output_path):
+    
+    ldf = df.loc["objective",:]
+
+    # ldf.drop(columns=['ref'], inplace=True)
+
+    scenarios = ldf.columns
+    years = ldf.index.get_level_values('year').unique()
+    
+    fig2, axes2 = plt.subplots(len(scenarios), 1, figsize=(18, 6))
+        # Ensure axes is always an iterable (list of Axes objects)
+    if not isinstance(axes2, np.ndarray):
+        axes2 = [axes2]
+
+    for scenario_idx, scenario in enumerate(scenarios):
+        # Sum values across all variables for each year and scenario
+        sorted_df = ldf.groupby(level='year').sum().sort_values(by=scenario, ascending=True)[scenario]
+
+        ax = axes2[scenario_idx]
+        # Plot years next to each other with columns touching
+        sorted_df.plot(kind='bar', color='purple',ax=ax, legend=(scenario_idx==0), )
+        ax.set_title(scenario)
+        
+        # Only add legend to the first subplot to avoid repetition
+        if scenario_idx == 0:
+            axes2[scenario_idx].legend(title='technology', loc='upper right', bbox_to_anchor=(1.05, 1))
+        
+    
+        # drop rows with all zeros or close to zero
+        # ldf = ldf.loc[(ldf.sum(axis=1) > 1e-1)] # > 0.1 MW1
+
+    plt.tight_layout()
+    plt.savefig(output_path)    
+
+def plot_rldc(files):
+    
+    policies = snakemake.config["scenario"]["policy"]
+    name = snakemake.config['ci']['name']
+
+    fig, axes = plt.subplots(len(policies), 2, figsize=(18, 15))
+    dfs = []
+    for policy_idx, policy in enumerate(policies):
+        selected_files = [file for file in files if policy in file]
+        for selected_file in selected_files:
+            year = selected_file.split('/')[-2]
+            df = pd.read_csv(selected_file, index_col=0)
+            df['total'].plot(ax=axes[policy_idx, 0], title=policy)
+            df[f"{name} load"].plot(ax=axes[policy_idx, 1], title=policy)
+            df['year'] = year
+            df['policy'] = policy
+            multi_index = pd.MultiIndex.from_arrays([df.index, df['year'], df['policy']], names=['variable', 'year', 'policy'])
+            df = df.drop(columns=['year', 'policy']).set_index(multi_index)
+            dfs.append(df)
+    dfs = pd.concat(dfs)
+    dfs.to_csv(snakemake.output.rldc_csv)
+    agg_df = dfs.groupby(level=['policy', 'year']).sum().assign(variable='rldc_sum')
+    agg_df = agg_df.rename(columns={'total': 'value'})
+    agg_df = agg_df.set_index('variable', append=True).reorder_levels(['variable', 'year', 'policy'])
+    global pick_df 
+    pick_df = pick_df.melt(ignore_index=False, var_name='policy', value_name='value')
+    pick_df = pick_df.set_index('policy', append=True)
+    pick_df = pd.concat([pick_df,agg_df.loc[:,'value'].to_frame()],axis=0)
+    plt.tight_layout()
+    plt.savefig(snakemake.output.plot_rldc)
+
+def pick_wy_table(df):
+
+    # Step 1: Split the DataFrame based on 'policy'
+    unique_policies = df.index.get_level_values('policy').unique()
+    split_dfs = {policy: df.xs(policy, level='policy') for policy in unique_policies}
+
+    # Step 2 & 3: Unstack 'variable' level and filter columns for each split DataFrame
+    unstacked_filtered_dfs = {}
+    for policy, split_df in split_dfs.items():
+        # Unstack the 'variable' level
+        unstacked_df = split_df.reset_index()
+        unstacked_df = unstacked_df.pivot(index='year', columns='variable', values='value')
+        # Filter columns
+        columns_of_interest = {'objective': 0.25 , 'system_grid_cfe_wavg':0.25, 'emissions':0.25, 'rldc_sum':0.25}
+        # Filtering and handling cases where the columns might not exist in the unstacked DataFrame
+        filtered_df = unstacked_df.loc[:, unstacked_df.columns.isin(columns_of_interest.keys())]
+        # Normalizing the filtered DataFrame and calculating the weighted score
+        rank_df=filtered_df.copy()
+        rank_df['system_grid_cfe_wavg'] = 1-rank_df.loc[:,'system_grid_cfe_wavg'] # flip the cfe to get the right ranking behaviour
+        rank_df = (rank_df - rank_df.min()) / (rank_df.max() - rank_df.min())
+        rank_df['weighted_score'] = rank_df.mul(columns_of_interest, axis=1).sum(axis=1)
+        rank_df.columns = [col + "_weight" for col in rank_df.columns]
+        # Storing the filtered, unstacked DataFrame with weights in a dictionary keyed by 'policy'
+        filtered_df = pd.concat([filtered_df, rank_df], axis=1).sort_values(by='weighted_score_weight', ascending=False)
+        unstacked_filtered_dfs[policy] = filtered_df
+    unstacked_filtered_dfs = pd.concat(unstacked_filtered_dfs)
+    unstacked_filtered_dfs.to_csv(snakemake.output.pick_csv)
+    return unstacked_filtered_dfs   
+
+
 
 if __name__ == "__main__":
     # Detect running outside of snakemake and mock snakemake for testing
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('compare_all_weatheryears', policy="ref", palette='p1', zone='DE', year='2025', participation='10', weather_year='1980-1982')
+        snakemake = mock_snakemake('compare_weatheryears', policy=["ref", "res100"], palette='p1', zone='DE', year='2025', participation='10', weather_year='1980')
 
     
     summary_files = snakemake.input.summary_files # this is the list of files from the expand function
     tech_colors = snakemake.config['tech_colors']
     
     concatenated_df = concatenate_summary_files(summary_files)
-    
+    concatenated_df.to_csv(snakemake.output.summary_csv)    
+    pick_df = concatenated_df
     plot_system_invest(concatenated_df, snakemake.output.plot_invest, tech_colors)
     plot_system_cfe(concatenated_df, snakemake.output.plot_cfe)
+    plot_objective(concatenated_df, snakemake.output.plot_objective)
+
+    rldc_files = snakemake.input.rldc_files
+    plot_rldc(rldc_files)
+    pick_wy = pick_wy_table(pick_df)
+    
