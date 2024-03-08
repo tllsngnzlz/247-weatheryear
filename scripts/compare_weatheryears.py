@@ -247,7 +247,58 @@ def pick_wy_table(df):
     unstacked_filtered_dfs.to_csv(snakemake.output.pick_csv)
     return unstacked_filtered_dfs   
 
+def plot_wy(df):
+    df.reset_index(inplace=True)
+    # Split the dataframe based on the unique policies in column 0
+    groups = df.groupby(df.columns[0])
 
+    # Prepare the colormap
+    total_years = len(df['year'].unique())
+    colormap = cm.get_cmap('plasma', total_years)  # Get the 'plasma' colormap
+    normalize = mcolors.Normalize(vmin=0, vmax=total_years-1)
+
+    line_styles = ['-', '--', '-.', ':']
+    markers = ['o'] #, 's', '^', 'D', '*', 'p', 'h']
+
+    fig, ax = plt.subplots(groups.ngroups,1,figsize=(12, 6*groups.ngroups), sharex=True)
+    if not isinstance(ax, np.ndarray):
+        ax = [ax]
+
+    # Iterate over each group
+    for j, (group_name, group_df) in enumerate(groups):
+        # Identify columns to plot, excluding the last "result" column
+        columns_to_plot = [column for column in group_df.columns if '_weight' in column or '_score' in column]
+
+        # Plot the line plots for each year
+        for i, (index, row) in enumerate(group_df.iterrows()):
+            # Extract the year and the values for the criteria columns
+            year = row['year']
+            # Calculate the color
+            color = colormap(normalize(i))
+            linestyle = line_styles[i % len(line_styles)]
+            marker = markers[i % len(markers)]
+            # Plot the criteria performances for this year
+            ax[j].plot(columns_to_plot, row[columns_to_plot], linestyle=linestyle, marker=marker, label=str(year), color=color)
+
+        # Calculate specific percentiles
+        percentiles = [100, 90, 50, 10, 0]
+        percentile_values = np.percentile(group_df['weighted_score_weight'], percentiles)
+        # Highlight and annotate the percentiles
+        for percentile, value in zip(percentiles, percentile_values):
+            closest_year = group_df.iloc[(group_df['weighted_score_weight']-value).abs().argsort()[:1]]['year'].values[0]
+            #ax[j].axhline(y=value, linestyle='--', color='gray', alpha=0.7)
+            ax[j].text(len(columns_to_plot)-0.7 , value, f'{percentile}th percentile: {value:.2f}\n{closest_year}', verticalalignment='center')
+            
+        # Add legend and labels
+        ax[j].legend(loc='upper left', bbox_to_anchor=(1.3 ,1), title='Year', ncol=2)
+        ax[j].set_title(f'Group: {group_name}')
+
+        
+        # Improve the layout
+        plt.xticks(rotation=45, ha="right")  # Rotate the x-axis labels for better readability
+        plt.tight_layout()  # Adjust the layout to make room for the legend and x-axis labels
+
+        plt.savefig(snakemake.output.plot_pick)
 
 if __name__ == "__main__":
     # Detect running outside of snakemake and mock snakemake for testing
@@ -269,4 +320,5 @@ if __name__ == "__main__":
     rldc_files = snakemake.input.rldc_files
     plot_rldc(rldc_files)
     pick_wy = pick_wy_table(pick_df)
-    
+    plot_wy(pick_wy)
+
