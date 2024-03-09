@@ -193,6 +193,8 @@ def plot_rldc(files):
     name = snakemake.config['ci']['name']
 
     fig, axes = plt.subplots(len(policies), 2, figsize=(18, 15))
+    axes = np.atleast_2d(axes)
+
     dfs = []
     for policy_idx, policy in enumerate(policies):
         selected_files = [file for file in files if policy in file]
@@ -258,7 +260,7 @@ def plot_wy(df):
     normalize = mcolors.Normalize(vmin=0, vmax=total_years-1)
 
     line_styles = ['-', '--', '-.', ':']
-    markers = ['o'] #, 's', '^', 'D', '*', 'p', 'h']
+    markers = ['x'] #, 's', '^', 'D', '*', 'p', 'h']
 
     fig, ax = plt.subplots(groups.ngroups,1,figsize=(12, 6*groups.ngroups), sharex=True)
     if not isinstance(ax, np.ndarray):
