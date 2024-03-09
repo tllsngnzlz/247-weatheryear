@@ -131,7 +131,8 @@ rule compare_all_weatheryears:
             participation=config["scenario"]["participation"],
             year=config["scenario"]["year"],
             zone=config["scenario"]["zone"],
-            palette=config["scenario"]["palette"])
+            palette=config["scenario"]["palette"]),
+        config=RDIR + '/configs/config.yaml'
 
 rule compare_weatheryears:
     input: 
