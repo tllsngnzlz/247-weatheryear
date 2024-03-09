@@ -544,62 +544,91 @@ def fix_network(n):
     if fix_dict['background-grid']:
         """import capacities from solved network from fix_dict['path'] and overwrite p_nom values of network with 
         p_nom_opt values from the solved network. only overwrite generators, links and storage_units in network, which are extendable and do not 
-        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False."""
-        n_opt = pypsa.Network(fix_dict['path'])
+        belong to the CI node. the CI node can be identified by name variable. To consider feasability gas turbine investment is possible and load shedding allowed.
+        Afterwards set extendable flag to False."""
+        n_opt = pypsa.Network(fix_dict['bg-path'])
         #Generators aka renewable capacities
         fix_generators = n.generators.index[~n.generators.index.str.contains(name) & ~n.generators.index.str.contains("EU") & n.generators.p_nom_extendable]
         try:
             old_values = n.generators.p_nom[fix_generators]
-            n.generators.p_nom[fix_generators] = n_opt.generators.p_nom_opt[fix_generators]
-            n.generators.p_nom_extendable[fix_generators] = False
-            changed_generators = zip(fix_generators , old_values, n.generators.p_nom[fix_generators])
+            n.generators.loc[fix_generators,'p_nom'] = n_opt.generators.loc[fix_generators,'p_nom_opt']
+            n.generators.loc[fix_generators,'p_nom_extendable'] = False
+            changed_generators = zip(fix_generators , old_values, n.generators.loc[fix_generators,'p_nom'])
             for generator, old_value, new_value in changed_generators:
-                print(f"Overwrote and fixed capacity of generator {generator}: {old_value} -> {new_value}")
+                print(f"overwriting and fixing capacity of generator {generator}: {old_value} -> {new_value}")
         except KeyError as e:
-            raise KeyError(f"Could not overwrite capacity. Generators that differ: {set(fix_generators) ^ set(n_opt.generators.p_nom_opt[fix_generators].index)}") from e
+            raise KeyError(f"Could not overwrite capacity. Generators that differ: {set(fix_generators) ^ set(n_opt.generators.loc[fix_generators,'p_nom_opt'].index)}") from e
         #Links aka fossil nuclear capacities H2 and battery charger
         fix_links = n.links.index[~n.links.index.str.contains(name) & ~n.links.bus0.str.contains("EU gas") & n.links.p_nom_extendable]
         try:
-            n.links.p_nom[fix_links] = n_opt.links.p_nom_opt[fix_links]
-            n.links.p_nom_extendable[fix_links] = False
+            n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
+            n.links.loc[fix_links,'p_nom_extendable'] = False
         except KeyError as e:
-            raise KeyError(f"Could not overwrite capacity. Links that differ: {set(fix_links) ^ set(n_opt.links.p_nom_opt[fix_links].index)}") from e
+            raise KeyError(f"Could not overwrite capacity. Links that differ: {set(fix_links) ^ set(n_opt.links.loc[fix_links,'p_nom_opt'].index)}") from e
         #Storage units aka hydro storage capacities 
         fix_storage_units = n.storage_units.index[~n.storage_units.index.str.contains(name) & n.storage_units.p_nom_extendable]
         try:
-            n.storage_units.p_nom[fix_storage_units] = n_opt.storage_units.p_nom_opt[fix_storage_units]
-            n.storage_units.p_nom_extendable[fix_storage_units] = False
+            n.storage_units.loc[fix_storage_units,'p_nom'] = n_opt.storage_units.loc[fix_storage_units,'p_nom_opt']
+            n.storage_units.loc[fix_storage_units,'p_nom_extendable'] = False
         except KeyError as e:
-            raise KeyError(f"Could not overwrite capacity. Storage units that differ: {set(fix_storage_units) ^ set(n_opt.storage_units.p_nom_opt[fix_storage_units].index)}") from e
+            raise KeyError(f"Could not overwrite capacity. Storage units that differ: {set(fix_storage_units) ^ set(n_opt.storage_units.loc[fix_storage_units,'p_nom_opt'].index)}") from e
         #stores aka H2 and battery storage capacities  
         fix_stores = n.stores.index[~n.stores.index.str.contains(name) & ~n.stores.index.str.contains("EU|co2") & n.stores.e_nom_extendable]
         try:
-            n.stores.e_nom[fix_stores] = n_opt.stores.e_nom_opt[fix_stores]
-            n.stores.e_nom_extendable[fix_stores] = False
+            n.stores.loc[fix_stores,'e_nom'] = n_opt.stores.loc[fix_stores,'e_nom_opt']
+            n.stores.loc[fix_stores,'e_nom_extendable'] = False
             # Allow more emissions by doubling the nominal capacity of the CO2 atmosphere store, if present
             if "co2 atmosphere" in n.stores.index:
                 n.stores.at["co2 atmosphere", "e_nom"] *= 2
         except KeyError as e:
-            raise KeyError(f"Could not overwrite capacity. Stores that differ: {set(fix_stores) ^ set(n_opt.stores.e_nom_opt[fix_stores].index)}") from e
-        
+            raise KeyError(f"Could not overwrite capacity. Stores that differ: {set(fix_stores) ^ set(n_opt.stores.loc[fix_stores,'e_nom_opt'].index)}") from e
+        #add a load shedding generator into each country node to account for the load shedding in the background grid. alternatve to gas investment
+        for country in geoscope(zone, area)['basenodes_to_keep']:
+            n.add("Generator",
+                  f"{country} load shedding",
+                  bus=country,
+                  carrier="load shedding",
+                  p_nom_extendable=False,
+                  p_nom_max=n.loads_t.p_set[country].max(),
+                  p_nom_pu=-1,
+                  marginal_cost=3000)
+
     if fix_dict['ci-node-to-zero']:
         """overwrite p_nom, e_nom and load values to zero. only overwrite generators, links and storages in network, which 
         belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False."""
         #Generators aka renewable capacities
         fix_generators = n.generators.index[n.generators.index.str.contains(name)]
-        n.generators.p_nom[fix_generators] = 0.
-        n.generators.p_nom_extendable[fix_generators] = False
+        n.generators.loc[fix_generators,'p_nom'] = 0.
+        n.generators.loc[fix_generators,'p_nom_extendable'] = False
         #Links aka fossil and nuclear capacities
         fix_links = n.links.index[n.links.index.str.contains(name)]
-        n.links.p_nom[fix_links] = 0.
-        n.links.p_nom_extendable[fix_links] = False
+        n.links.loc[fix_links,'p_nom'] = 0.
+        n.links.loc[fix_links,'p_nom_extendable'] = False
         #Stores aka H2 and battery storage capacities
         fix_stores = n.stores.index[n.stores.index.str.contains(name)]
-        n.stores.e_nom[fix_stores] = 0.
-        n.stores.e_nom_extendable[fix_stores] = False
+        n.stores.loc[fix_stores,'e_nom'] = 0.
+        n.stores.loc[fix_stores,'e_nom_extendable'] = False
         #load aka C&I load
         fix_load =  [col for col in n.loads_t.p_set.columns if name in col]
-        n.loads_t.p_set[fix_load] = 0.
+        n.loads_t.loc[fix_load,'p_set'] = 0.
+    if fix_dict['ci-generation'] or fix_dict['ci-storage']:
+        """overwrite p_nom, e_nom and load values to 2021 values. only overwrite generators, links and storages in network, which 
+        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False."""
+        n_opt=pypsa.Network(fix_dict['ci-path'])
+        if fix_dict['ci-generation']:
+            #Generators aka renewable capacities
+            fix_generators = n.generators.index[n.generators.index.str.contains(name)]
+            n.generators.loc[fix_generators,'p_nom'] = n_opt.generators.loc[fix_generators,'p_nom_opt']
+            n.generators.loc[fix_generators,'p_nom_extendable'] = False
+            #Links aka grid capacities and charger/discharging capacities
+            fix_links = n.links.index[n.links.index.str.contains(name)]
+            n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
+            n.links.loc[fix_links,'p_nom_extendable'] = False
+        if fix_dict['ci-storage']:
+            #Stores aka H2 and battery storage capacities
+            fix_stores = n.stores.index[n.stores.index.str.contains(name)]
+            n.stores.loc[fix_stores,'e_nom'] = n_opt.stores.loc[fix_stores,'e_nom_opt']
+            n.stores.loc[fix_stores,'e_nom_extendable'] = False
         
 
         
