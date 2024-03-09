@@ -732,7 +732,7 @@ def solve_network(n, policy, penetration, tech_palette):
         excess =  (ci_export * weights).sum()
 
         total_load = (n.loads_t.p_set[name + " load"] * weights).sum()
-        share = 0.2 # max(0., penetration - 0.8) -> no sliding share
+        share = 0. # max(0., penetration - 0.8) -> no sliding share
         
         n.model.add_constraints(excess <= share*total_load, name="Excess_constraint")
 
