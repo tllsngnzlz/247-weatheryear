@@ -878,7 +878,9 @@ def solve_network(n, policy, penetration, tech_palette):
 
     def extra_functionality(n, snapshots):
 
-        add_battery_constraints(n)
+        if policy == "cfe" and snakemake.config['fixed-capacity']['background-grid']:
+            #avoid error in adding battery constraint if there is no Link with extendable capacity in model(fixed capacity and ref/res without battery storage)
+            add_battery_constraints(n)
         # country_res_constraints(n)
         system_res_constraints(n, year, snakemake.config)
 

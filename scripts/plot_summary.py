@@ -25,15 +25,16 @@ def used():
     ldf = (100. * ldf).round(1)
 
     yl_ref = ldf.loc[:,'no\npolicy'].sum()
-    yl_100RES = ldf.loc[:,'100%\nRES'].sum()
     plt.axhline(y = yl_ref, color = 'gray', linestyle="--", linewidth=0.8)
-    plt.axhline(y = yl_100RES, color = 'gray', linestyle="--", linewidth=0.8)
+    if '100%\nRES' in ldf.columns:
+        yl_100RES = ldf.loc[:,'100%\nRES'].sum()
+        plt.axhline(y = yl_100RES, color = 'gray', linestyle="--", linewidth=0.8)
     plt.axvline(x = 0.5, color = 'gray', linestyle="--")
     plt.text(3.5,yl_ref-6,f'Reference case, fraction CFE={int(round(yl_ref,0))}'+'%', 
             horizontalalignment='left', bbox=dict(facecolor='w', alpha=0.5)) 
     
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     ldf.T.plot(kind="bar",stacked=True,
                 ax=ax, color=tech_colors, width=0.65, edgecolor = "black", linewidth=0.05)
@@ -77,7 +78,7 @@ def ci_capacity():
     #ax.set_ylim([0,yl_100RES*1.3/1e3])
 
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     (ldf/1e3).T.plot(kind="bar",stacked=True,
                 ax=ax, color=tech_colors, width=0.65, edgecolor = "black", linewidth=0.05)
@@ -117,7 +118,7 @@ def ci_generation():
     plt.axvline(x = 0.5, color = 'gray', linestyle="--")
 
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     (ldf/1e3).T.plot(kind="bar",stacked=True,
                 ax=ax, color=tech_colors, width=0.65, edgecolor = "black", linewidth=0.05)
@@ -268,7 +269,7 @@ def ci_cost():
     plt.axvline(x = 0.5, color = 'gray', linestyle="--")
 
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     ldf.T.plot(kind="bar",stacked=True,
                ax=ax, color=tech_colors, width=0.65, edgecolor = "black", linewidth=0.05)
@@ -319,7 +320,7 @@ def ci_costandrev():
             horizontalalignment='left') 
     
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     ldf.T.plot(kind="bar",stacked=True,
                ax=ax, color=tech_colors, width=0.65, edgecolor = "black", linewidth=0.05)
@@ -370,7 +371,7 @@ def system_capacity():
     plt.axvline(x = 0.5, color = 'gray', linestyle="--")
 
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     (ldf/1e3).T.plot(kind="bar",stacked=True,
                ax=ax, color=tech_colors, width=0.65, edgecolor = "black", linewidth=0.05)
@@ -411,7 +412,7 @@ def system_capacity_diff():
     plt.axvline(x = 0.5, color = 'gray', linestyle="--")
 
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     col_list= list(ldf)
     ldf_pos = ldf[ldf>0]
@@ -476,7 +477,7 @@ def total_capacity_diff():
     plt.axvline(x = 0.5, color = 'gray', linestyle="--")
 
     #Drop reference scenario before plotting
-    ldf.drop(ldf.columns[0], axis=1, inplace=True)
+    #ldf.drop(ldf.columns[0], axis=1, inplace=True)
 
     (ldf/1e3).T.plot(kind="bar",stacked=True,
                ax=ax, color=tech_colors, width=0.65, edgecolor = "black", linewidth=0.05)
@@ -553,7 +554,7 @@ if __name__ == "__main__":
     # Detect running outside of snakemake and mock snakemake for testing
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('plot_summary', palette='p3', zone='DK', year='2030', participation='10')   
+        snakemake = mock_snakemake('plot_summary', palette='p1', zone='DE', year='2025', participation='10', weather_year='1980')   
 
     #Windcards & Settings
     tech_palette = snakemake.wildcards.palette
@@ -666,11 +667,11 @@ if __name__ == "__main__":
     #system
     zone_emissions()
     #system_emissions()
-    system_capacity()
+    #system_capacity()
     #objective_abs()
     
     #diffs to reference case
     #objective_rel()
-    system_capacity_diff()
+    #system_capacity_diff()
     total_capacity_diff()
 
