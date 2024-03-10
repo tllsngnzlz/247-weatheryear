@@ -753,7 +753,7 @@ def solve_network(n, policy, penetration, tech_palette):
         n.model.add_constraints(lhs >= penetration*total_load, name="CFE_constraint")
 
 
-    def excess_constraints(n): #done
+    def excess_constraints(n, share): #done
         
         weights = n.snapshot_weightings["generators"]
 
@@ -761,7 +761,7 @@ def solve_network(n, policy, penetration, tech_palette):
         excess =  (ci_export * weights).sum()
 
         total_load = (n.loads_t.p_set[name + " load"] * weights).sum()
-        share = 0. # max(0., penetration - 0.8) -> no sliding share
+        #share = 0.2 # max(0., penetration - 0.8) -> no sliding share
         
         n.model.add_constraints(excess <= share*total_load, name="Excess_constraint")
 
@@ -845,7 +845,7 @@ def solve_network(n, policy, penetration, tech_palette):
             target = config[f"res_target_{year}"][f"{ct}"]
             total_load = (n.loads_t.p_set[country_loads].sum(axis=1) * weights).sum()
 
-            #only add constraint if background grid has no fixed capacity to avoid infeasability
+            #only add constraints if background grid has no fixed capacity to avoid infeasability
             if not snakemake.config['fixed-capacity']['background-grid']:
                 print(
                     f"country RES constraint for {ct} {target} and total load {round(total_load/1e6, 2)} TWh"
@@ -887,11 +887,11 @@ def solve_network(n, policy, penetration, tech_palette):
         elif policy == "cfe":
             print("setting CFE target of",penetration)
             cfe_constraints(n)
-            excess_constraints(n)
+            excess_constraints(n, 0.)
         elif policy == "res":
             print("setting annual RES target of",penetration)
             res_constraints(n)
-            excess_constraints(n)
+            excess_constraints(n, 0.2)
         else:
             print(f"'policy' wildcard must be one of 'ref', 'res__' or 'cfe__'. Now is {policy}.")
             sys.exit()
@@ -929,7 +929,7 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         snakemake = mock_snakemake('solve_network', 
-                    policy="res100", palette='p1', zone='DE', year='2025', participation='10', weather_year='2013')
+                    policy="ref", palette='p1', zone='DE', year='2025', participation='10', weather_year='2013')
 
     logging.basicConfig(filename=snakemake.log.python, level=snakemake.config['logging_level'])
 
