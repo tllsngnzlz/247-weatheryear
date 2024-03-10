@@ -559,7 +559,7 @@ def fix_network(n):
         except KeyError as e:
             raise KeyError(f"Could not overwrite capacity. Generators that differ: {set(fix_generators) ^ set(n_opt.generators.loc[fix_generators,'p_nom_opt'].index)}") from e
         #Links aka fossil nuclear capacities H2 and battery charger
-        fix_links = n.links.index[~n.links.index.str.contains(name) & ~n.links.bus0.str.contains("EU gas") & n.links.p_nom_extendable]
+        fix_links = n.links.index[~n.links.index.str.contains(name) & n.links.p_nom_extendable] #& ~n.links.bus0.str.contains("EU gas") to still allow gas investment to avoid infeasability
         try:
             n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
             n.links.loc[fix_links,'p_nom_extendable'] = False
@@ -589,8 +589,8 @@ def fix_network(n):
                   bus=country,
                   carrier="load shedding",
                   p_nom_extendable=False,
-                  p_nom_max=n.loads_t.p_set[country].max(),
-                  p_nom_pu=-1,
+                  p_nom=n.loads_t.p_set[country].max(),
+                  p_nom_pu=1,
                   marginal_cost=3000)
 
     if fix_dict['ci-node-to-zero']:
