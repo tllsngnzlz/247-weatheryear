@@ -46,9 +46,13 @@ ci:
 area: "EU"
 
 fixed-capacity: 
-  background-grid: False # overwrites and fixes the capacities with values from network in path
-  path: 'input/solved/1982ref.nc' #1982 is 90% quantile of worst cfe score. 2003 is worst
-  ci-node-to-zero: True #sets all ci node capacities, and load to 0 and fixes it.
+  background-grid: True # overwrites and fixes the capacities with values from network in path
+  bg-path: '../247-results/02_25-EU-CI0/networks/10/2025/DE/p1/2013/ref.nc'
+  ci-node-to-zero: False #sets all ci node capacities and load to 0 while fixing it. (subtracting ci load from grid to account for additionality)
+  ci-generation: False #sets all ci generation capacities to whatever is in the network under ci-path
+  ci-storage: False #sets all ci storage capacities to whatever is in the network under ci-path
+  ci-path: '../247-results/02_27-EU/networks/10/2025/DE/p1/2013/ref.nc'
+
 
 ###################
 # Fixed settings
@@ -131,7 +135,39 @@ policy_2030: ['BE', 'SE', 'PT', 'AT', 'FR', 'GB', 'IT', 'IE', 'HU', 'MK', 'DK', 
 # renewable target policies (RES share in electricity consumption)
 # source: https://ec.europa.eu/info/energy-climate-change-environment/implementation-eu-countries 
 res_target_2025:
-  IE: 0.47
+  AL: 1.057597364
+  AT: 0.902142857142857
+  BE: 0.36
+  BG: 0.347
+  CH: 0.622
+  CZ: 0.227
+  DE: 0.55
+  DK: 0.85
+  EE: 0.35
+  ES: 0.618888888888889
+  FI: 0.4
+  FR: 0.30625
+  GB: 0.493125
+  GR: 0.58
+  HR: 0.58
+  HU: 0.155040209
+  IE: 0.417
+  IT: 0.48
+  LT: 0.545
+  LU: 0.319048974943052
+  LV: 0.532283729
+  ME: 0.629249823
+  MK: 0.21452239
+  NL: 0.568666666666667
+  NO: 1.21880547
+  PL: 0.286
+  PT: 0.78
+  RO: 0.487
+  RS: 0.298321271
+  SE: 0.813333333333333
+  SI: 0.419
+  SK: 0.228306268
+  """IE: 0.47
   DK: 0.85  # p.3 https://ens.dk/sites/ens.dk/files/Basisfremskrivning/kf23_sektornotat_8b_forbrug_af_el.pdf
   DE: 0.55
   NL: 0.49   # interpolated from 2020 wind+solar 19%, bioenergy 6% to 2030 target
@@ -144,7 +180,7 @@ res_target_2025:
   GB: 0.535  # interpolated from 2020: 29% wind + solar 2020, 42% renewable overall to 2030 target
   PL: 0.245  # 11% wind + solar 2020, 17% renewable overall
   ES: 0.588  # linear interpolated share 46.6% in 2021 targer 74% in 2030
-  PT: 0.69   # p.41 Table 9 https://energy.ec.europa.eu/system/files/2020-06/pt_final_necp_main_en_0.pdf
+  PT: 0.69   # p.41 Table 9 https://energy.ec.europa.eu/system/files/2020-06/pt_final_necp_main_en_0.pdf"""
 res_target_2030:
   IE: 0.7
   DK: 1.17  # https://ens.dk/sites/ens.dk/files/Basisfremskrivning/kf23_sektornotat_8b_forbrug_af_el.pdf
