@@ -220,7 +220,7 @@ if config['solve_network'] == 'solve':
             python=RDIR + "/logs/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}_python.log",
             memory=RDIR + "/logs/{participation}/{year}/{zone}/{palette}/{weather_year}/{policy}_memory.log"
         threads: 12
-        resources: mem=8000
+        resources: mem_mb=15000
         script: "scripts/solve_network.py"
 
 rule summarise_network:
