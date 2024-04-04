@@ -598,7 +598,7 @@ def fix_network(n):
         n.stores.loc[fix_stores,'e_nom_extendable'] = False
         #load aka C&I load
         fix_load =  [col for col in n.loads_t.p_set.columns if name in col]
-        n.loads_t.loc[fix_load,'p_set'] = 0.
+        n.loads_t.p_set.loc[:,fix_load] = 0.
         
     if fix_dict['ci-generation'] or fix_dict['ci-storage']:
         """overwrite p_nom, e_nom and load values to 2021 values. only overwrite generators, links and storages in network, which 
