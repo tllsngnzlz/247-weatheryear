@@ -11,12 +11,57 @@ n_2030: 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc'
 
 ###################
 # Scenario controls
+"""
+main scenarios:
 
-run: '02_18-EU'
+scenario_1: 
+  policy: ref
+  palette: p1
+  zone: DE
+  weather_year: 1980-2020
+  fixed_capacity:
+    background-grid: False
+    ci-node-to-zero: True
+
+scenario_2:
+  policy: ref, res100, cfe95, cfe100
+  palette: p1, p2
+  zone: DE
+  weather_year: 5 secelcted years from scenario_1
+  fixed_capacity:
+    background-grid: True
+    bg-path: path to network in scenario_1
+
+scenario_3:
+  policy: (ref,) res100, cfe95, cfe100
+  palette: p1, p2
+  zone: DE
+  weather_year: 5 secelcted years from scenario_1
+  fixed_capacity:
+    background-grid: True
+    bg-path: path to network in scenario_1
+    ci-node-to-zero: False
+    ci-generation: True
+    ci-storage: True/False
+    ci-path: path to network in scenario_2
+
+
+validation
+n_2025: 'input/elec{weather_year}_s_37_lv1.0__3H-B-solar+p3_2025.nc' vs 'v6_elec_s_37_lv1.0__3H-B-solar+p3_2025.nc'
+weather_year: 2013
+res_target_2025: old values
+fixed_capacity: none
+
+sensitivity analysis
+like scenario 2 but zone: DK, ES 
+"""
+
+
+run: '04_03-EU_scenario_1' # scenario_2 scenario_3
 
 #wildcards
 scenario:
-  policy:  ["ref", "res100", "cfe95", "cfe100"] # "cfe80", "cfe85", "cfe90", "cfe95", "cfe98", "cfe99", "cfe100"]
+  policy:  ["ref", "res100", "cfe95", "cfe100"] 
   palette: ["p1", # onwind + solar + battery 
             "p2", # onwind + solar + battery + LDES
             # "p3", # onwind + solar + battery + LDES + clean dispatchable gen
@@ -205,7 +250,7 @@ solving:
     n_iterations: 2  #iterations with CFE factor
   solver:
     name: gurobi
-    threads: 5
+    threads: 4
     method: 2 # barrier
     crossover: 0
     BarConvTol: 1.e-6
