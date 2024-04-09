@@ -207,6 +207,8 @@ rule make_summary:
 
 if config['solve_network'] == 'solve':
     rule solve_network:
+        params:
+            ci_path = lambda wildcards: config['fixed-capacity']['ci-path'].format(palette=wildcards.palette)
         input:
             network2030 = 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc',
             network2025 = config['n_2025'],
@@ -262,14 +264,16 @@ rule sync_plots:
 
 # illustrate workflow
 rule dag:
-     message: "Plot dependency graph of the workflow."
-     output:
-         dot="workflow/dag.dot",
-         graph="workflow/graph.dot",
-         pdf="workflow/graph.pdf"
-     shell:
-         """
-         snakemake --rulegraph > {output.dot}
-         sed -e '1,3d' < {output.dot} > {output.graph}
-         dot -Tpdf -o {output.pdf} {output.graph}
-         """
+    message: "Plot dependency graph of the workflow."
+    output:
+        dot="workflow/dag.dot",
+        graph="workflow/graph.dot",
+        pdf="workflow/graph.pdf",
+        tikz="workflow/graph.tex"
+    shell:
+        """
+        snakemake --rulegraph results/04_03-EU_scenario_2/plots/10/2025/DE/p1/1981/SUMMARY.pdf results/04_03-EU_scenario_2/plots/10/2025/DE/p1/plot_pick.pdf  > {output.dot}
+        dot2tex {output.dot} > {output.tikz}
+        sed -e '1,3d' < {output.dot} > {output.graph}
+        dot -Tpdf -o {output.pdf} {output.graph}
+        """

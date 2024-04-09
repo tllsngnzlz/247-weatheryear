@@ -601,9 +601,9 @@ def fix_network(n):
         n.loads_t.p_set.loc[:,fix_load] = 0.
         
     if fix_dict['ci-generation'] or fix_dict['ci-storage']:
-        """overwrite p_nom, e_nom and load values to 2021 values. only overwrite generators, links and storages in network, which 
+        """overwrite p_nom, e_nom and load values to 2013 values. only overwrite generators, links and storages in network, which 
         belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False."""
-        n_opt=pypsa.Network(fix_dict['ci-path'])
+        n_opt=pypsa.Network(snakemake.params.ci_path)
         if fix_dict['ci-generation']:
             #Generators aka renewable capacities
             fix_generators = n.generators.index[n.generators.index.str.contains(name)]
