@@ -609,11 +609,15 @@ def fix_network(n):
             fix_generators = n.generators.index[n.generators.index.str.contains(name)]
             n.generators.loc[fix_generators,'p_nom'] = n_opt.generators.loc[fix_generators,'p_nom_opt']
             n.generators.loc[fix_generators,'p_nom_extendable'] = False
-            #Links aka grid capacities and charger/discharging capacities
-            fix_links = n.links.index[n.links.index.str.contains(name)]
+            #Links acting as grid connection capacities
+            fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("import|export")]
             n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
             n.links.loc[fix_links,'p_nom_extendable'] = False
         if fix_dict['ci-storage']:
+            #Links acting as charger/discharging capacities
+            fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("charger|discharger")]
+            n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
+            n.links.loc[fix_links,'p_nom_extendable'] = False
             #Stores aka H2 and battery storage capacities
             fix_stores = n.stores.index[n.stores.index.str.contains(name)]
             n.stores.loc[fix_stores,'e_nom'] = n_opt.stores.loc[fix_stores,'e_nom_opt']
@@ -851,25 +855,33 @@ def solve_network(n, policy, penetration, tech_palette):
     def add_battery_constraints(n):
         """
         Add constraint ensuring that charger = discharger:
-         1 * charger_size - efficiency * discharger_size = 0
+        1 * charger_size - efficiency * discharger_size = 0
         """
+        # Check if "Link-p_nom" exists in the model to avoid KeyError
+        try:
+            link_p_nom_model = n.model['Link-p_nom']
+        except KeyError:
+            print("No extendable links in the network. Skipping add_battery_constraints.")
+            return
+
         discharger_bool = n.links.index.str.contains("battery discharger")
         charger_bool = n.links.index.str.contains("battery charger")
 
-        dischargers_ext= n.links[discharger_bool].query("p_nom_extendable").index
-        chargers_ext= n.links[charger_bool].query("p_nom_extendable").index
+        dischargers_ext = n.links[discharger_bool].query("p_nom_extendable").index
+        chargers_ext = n.links[charger_bool].query("p_nom_extendable").index
 
-        eff = n.links.efficiency[dischargers_ext].values
-        lhs = n.model["Link-p_nom"].loc[chargers_ext] - n.model["Link-p_nom"].loc[dischargers_ext] * eff
-        
-        n.model.add_constraints(lhs == 0, name="Link-charger_ratio")
+        # Ensure there are extendable links before proceeding
+        if not dischargers_ext.empty and not chargers_ext.empty:
+            eff = n.links.efficiency[dischargers_ext].values
+            lhs = n.model["Link-p_nom"].loc[chargers_ext] - n.model["Link-p_nom"].loc[dischargers_ext] * eff
+            n.model.add_constraints(lhs == 0, name="Link-charger_ratio")
+        else:
+            print("No extendable dischargers or chargers in the model. Skipping add_battery_constraints.")
 
 
     def extra_functionality(n, snapshots):
 
-        if policy == "cfe" and snakemake.config['fixed-capacity']['background-grid']:
-            #avoid error in adding battery constraint if there is no Link with extendable capacity in model(fixed capacity and ref/res without battery storage)
-            add_battery_constraints(n)
+        add_battery_constraints(n)
         # country_res_constraints(n)
         system_res_constraints(n, year, snakemake.config)
 
@@ -920,7 +932,7 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         snakemake = mock_snakemake('solve_network', 
-                    policy="ref", palette='p1', zone='DE', year='2025', participation='10', weather_year='2013')
+                    policy="cfe95", palette='p1', zone='DE', year='2025', participation='10', weather_year='2013')
 
     logging.basicConfig(filename=snakemake.log.python, level=snakemake.config['logging_level'])
 
