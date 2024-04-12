@@ -601,8 +601,9 @@ def fix_network(n):
         n.loads_t.p_set.loc[:,fix_load] = 0.
         
     if fix_dict['ci-generation'] or fix_dict['ci-storage']:
-        """overwrite p_nom, e_nom and load values to 2013 values. only overwrite generators, links and storages in network, which 
-        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False."""
+        """overwrite p_nom, e_nom and load values to values in supplied network file. only overwrite generators, links and storages in network, which 
+        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False. funcion does allow to fix generation and storage capacities separately.
+        To avoid infeasabilies use the flags ci-allow-on-demand-storage and ci-allow-load-shedding."""
         n_opt=pypsa.Network(snakemake.params.ci_path)
         if fix_dict['ci-generation']:
             #Generators aka renewable capacities
@@ -615,16 +616,36 @@ def fix_network(n):
             n.links.loc[fix_links,'p_nom_extendable'] = False
         if fix_dict['ci-storage']:
             #Links acting as charger/discharging capacities
-            fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("charger|discharger")]
+            fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("charger|discharger|H2 Electrolysis|H2 Fuel Cell")]
             n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
             n.links.loc[fix_links,'p_nom_extendable'] = False
             #Stores aka H2 and battery storage capacities
             fix_stores = n.stores.index[n.stores.index.str.contains(name)]
             n.stores.loc[fix_stores,'e_nom'] = n_opt.stores.loc[fix_stores,'e_nom_opt']
             n.stores.loc[fix_stores,'e_nom_extendable'] = False
-        
+        if fix_dict['ci-allow-load-shedding']:
+            #add a load shedding generator into ci node to have load shedding at ci-node
+            n.add("Generator",
+                f"{name} load shedding",
+                bus=name,
+                carrier="load shedding",
+                p_nom_extendable=False,
+                p_nom=n.loads_t.p_set[name].max(),
+                p_nom_pu=1,
+                marginal_cost=3000)
+        if fix_dict["ci-allow-on-demand-storage"]:
+            #add an expensive battery storage capacity into ci nodes battery bus and set it to extendable.
+            n.add("Store",
+                f"{name} on-demand battery",
+                bus=f"{name} battery",
+                e_cyclic=True,
+                e_nom_extendable=True,
+                carrier="battery",
+                capital_cost=n.stores.at[f"{node} battery"+"-{}".format(year), "capital_cost"]*2,
+                lifetime=n.stores.at[f"{node} battery"+"-{}".format(year), "lifetime"]*2
+                )
 
-        
+
 
 
 def calculate_grid_cfe(n):
