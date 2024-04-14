@@ -26,22 +26,22 @@ n_2030: 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc'
 #   zone: DE
 #   weather_year: 5 secelcted years from scenario_1
 #   fixed_capacity:
-#     background-grid: True
+#     background-grid:  #no exports allowed
 #     bg-path: path to network in scenario_1
 # 
 # scenario_3:
-#   policy: (ref,) res100, cfe95, cfe100
+#   policy: cfe100
 #   palette: p1, p2
 #   zone: DE
 #   weather_year: 5 secelcted years from scenario_1
 #   fixed_capacity:
-#     background-grid: True
+#     background-grid: True #exports but no imports allowed
 #     bg-path: path to network in scenario_1
 #     ci-node-to-zero: False
-#     ci-generation: True
-#     ci-storage: True/False
+#     ci-node: True # allow load shedding to be feasible
 #     ci-path: path to network in scenario_2
-# 
+#     ci-allow-on-demand-storage: False # for scenario_3B
+#     ci-allow-load-shedding: True
 # 
 # validation
 # n_2025: 'input/elec{weather_year}_s_37_lv1.0__3H-B-solar+p3_2025.nc' vs 'v6_elec_s_37_lv1.0__3H-B-solar+p3_2025.nc'
