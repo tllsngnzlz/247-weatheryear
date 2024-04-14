@@ -175,38 +175,38 @@ policy_2030: ['BE', 'SE', 'PT', 'AT', 'FR', 'GB', 'IT', 'IE', 'HU', 'MK', 'DK', 
 # renewable target policies (RES share in electricity consumption)
 # source: https://ec.europa.eu/info/energy-climate-change-environment/implementation-eu-countries 
 res_target_2025:
-  AL: 1.057597364
-  AT: 0.902142857142857
-  BE: 0.36
-  BG: 0.347
-  CH: 0.622
-  CZ: 0.227
-  DE: 0.55
-  DK: 0.85
-  EE: 0.35
-  ES: 0.618888888888889
-  FI: 0.4
-  FR: 0.30625
-  GB: 0.493125
-  GR: 0.58
-  HR: 0.58
-  HU: 0.155040209
-  IE: 0.417
-  IT: 0.48
-  LT: 0.545
-  LU: 0.319048974943052
-  LV: 0.532283729
-  ME: 0.629249823
-  MK: 0.21452239
-  NL: 0.568666666666667
-  NO: 1.21880547
-  PL: 0.286
-  PT: 0.78
-  RO: 0.487
-  RS: 0.298321271
-  SE: 0.813333333333333
-  SI: 0.419
-  SK: 0.228306268
+  AL: 0.94 # https://www.enerdata.net/estore/energy-market/albania/
+  AT: 0.9021428571428571 # https://energy.ec.europa.eu/system/files/2020-03/at_final_necp_main_en_0.pdf
+  BE: 0.36 # https://commission.europa.eu/publications/belgium-draft-updated-necp-2021-2030_en?prefLang=de
+  BG: 0.347 # https://commission.europa.eu/publications/bulgaria-draft-updated-necp-2021-2030_en?prefLang=de
+  CZ: 0.227 # https://commission.europa.eu/publications/czech-draft-updated-necp-2021-2030_en?prefLang=de
+  DE: 0.55 # https://commission.europa.eu/publications/germany-draft-updated-necp-2021-2030_en?prefLang=de
+  DK: 0.85 # https://commission.europa.eu/publications/denmark-draft-updated-necp-2021-2030_en?prefLang=de
+  EE: 0.35 # https://commission.europa.eu/publications/estonia-draft-updated-necp-2021-2030_en?prefLang=de
+  ES: 0.5877777777777777 # https://commission.europa.eu/publications/spain-draft-updated-necp-2021-2030_en?prefLang=de
+  FI: 0.4 # https://commission.europa.eu/document/download/78c7f4bd-a3ca-4e83-8732-65f1e0d0baaa_en?filename=DRAFT%20NECP%20update_Finland.pdf&prefLang=de
+  FR: 0.30625 # https://openenergytracker.org/en/docs/france/renewables/#in-final-gross-energy-consumption
+  GB: 0.49312500000000004 #interpolated from 2020: 29% wind + solar 2020, 42% renewable overall to 2030 target
+  GR: 0.58 # https://commission.europa.eu/publications/greece-draft-updated-necp-2021-2030_en?prefLang=de
+  HR: 0.58 # https://commission.europa.eu/publications/croatia-draft-updated-necp-2021-2030_en?prefLang=de
+  HU: 0.155040209 # https://www.eea.europa.eu/en/datahub/datahubitem-view/d4943227-c1c2-430d-8cb3-bebc2dd8666c?activeAccordion=
+  IE: 0.5133333333333333 # https://commission.europa.eu/document/download/4b741649-7249-47d6-b62a-b123edd49ae5_en?filename=Ireland%20-%20Draft%20updated%20NECP%202021-2030%20EN.pdf&prefLang=de
+  IT: 0.48 # https://commission.europa.eu/publications/italy-draft-updated-necp-2021-2030_en?prefLang=de
+  LT: 0.801 # https://commission.europa.eu/publications/lithuania-draft-updated-necp-2021-2030_en?prefLang=de
+  LU: 0.215 # https://commission.europa.eu/publications/luxembourg-draft-updated-necp-2021-2030_en?prefLang=de
+  LV: 0.532283729 # https://www.eea.europa.eu/en/datahub/datahubitem-view/d4943227-c1c2-430d-8cb3-bebc2dd8666c?activeAccordion=
+  ME: 0.629249823 # https://www.eea.europa.eu/en/datahub/datahubitem-view/d4943227-c1c2-430d-8cb3-bebc2dd8666c?activeAccordion=
+  MK: 0.21452239 # https://www.eea.europa.eu/en/datahub/datahubitem-view/d4943227-c1c2-430d-8cb3-bebc2dd8666c?activeAccordion=
+  NL: 0.5686666666666667 # https://commission.europa.eu/publications/netherlands-draft-updated-necp-2021-2030_en?prefLang=de
+  NO: 1.21880547 # https://www.eea.europa.eu/en/datahub/datahubitem-view/d4943227-c1c2-430d-8cb3-bebc2dd8666c?activeAccordion=
+  PL: 0.286 # https://commission.europa.eu/publications/poland-draft-updated-necp-2021-2030_en?prefLang=de
+  PT: 0.78 # https://commission.europa.eu/publications/portugal-draft-updated-necp-2021-2030_en?prefLang=de
+  RO: 0.487 # https://commission.europa.eu/publications/romania-draft-updated-necp-2021-2030_en?prefLang=de
+  RS: 0.298321271 # https://www.eea.europa.eu/en/datahub/datahubitem-view/d4943227-c1c2-430d-8cb3-bebc2dd8666c?activeAccordion=
+  SE: 0.8133333333333334 # https://commission.europa.eu/publications/sweden-draft-updated-necp-2021-2030_en?prefLang=de
+  SI: 0.419 # https://commission.europa.eu/publications/slovenia-draft-updated-necp-2021-2030_en?prefLang=de
+  SK: 0.228306268 # https://www.eea.europa.eu/en/datahub/datahubitem-view/d4943227-c1c2-430d-8cb3-bebc2dd8666c?activeAccordion=
+#### old study
 #  IE: 0.47
 #  DK: 0.85  # p.3 https://ens.dk/sites/ens.dk/files/Basisfremskrivning/kf23_sektornotat_8b_forbrug_af_el.pdf
 #  DE: 0.55
