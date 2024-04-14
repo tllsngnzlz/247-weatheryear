@@ -52,13 +52,13 @@ n_2030: 'input/v6_elec_s_37_lv1.0__3H-B-solar+p3_2030.nc'
 # sensitivity analysis
 # like scenario 2 but zone: DK, ES 
 
-run: '04_06-EU_DE_scenario_3' # scenario_2 scenario_3
+run: '04_14-EU_DE_scenario2' # scenario_2 scenario_3
 
 #wildcards
 scenario:
-  policy:  ["cfe95", ] #["ref", "res100", "cfe95", "cfe100"] 
+  policy:  ["cfe100",] #"res100"] #, "cfe95", "cfe100"]
   palette: ["p1", # onwind + solar + battery 
-            "p2", # onwind + solar + battery + LDES
+            # "p2", # onwind + solar + battery + LDES
             # "p3", # onwind + solar + battery + LDES + clean dispatchable gen
             ]
   zone: [ #"IE",
@@ -69,7 +69,7 @@ scenario:
   year: [ # '2030', 
          '2025'
          ] # controls both the brownfield fleet and tech costs projection
-  participation: ['10', 
+  participation: ['10',
                   #'25'
                   ] #share [%] of CI load per zone following 247-CFE approach
   weather_year: '1987' #+2003+1998+2000+2015' # years of weather data to use for renewable capacity factor time series
@@ -87,13 +87,12 @@ area: "EU"
 
 fixed-capacity: 
   background-grid: True # overwrites and fixes the capacities with values from network in path
-  bg-path: '../results/04_04-EU_DE_scenario_1/networks/10/2025/DE/p1/2013/ref.nc'
+  bg-path: 'results/04_04-EU_DE_scenario_1/networks/10/2025/DE/p1/1998/ref.nc'
   ci-node-to-zero: False #sets all ci node capacities and load to 0 while fixing it. (subtracting ci load from grid to account for additionality)
-  ci-generation: True #sets all ci generation capacities to whatever is in the network under ci-path
-  ci-storage: True #sets all ci storage capacities to whatever is in the network under ci-path
-  ci-path: '../results/04_04-EU_DE_scenario_2/networks/10/2025/DE/{palette}/1998/cfe100.nc'
+  ci-node: False #sets all ci generation and storage capacities to whatever is in the network under ci-path, blocks imports from grid
+  ci-path: 'results/04_13-EU_DE_scenario2/networks/10/2025/DE/{palette}/1998/cfe100.nc'
   ci-allow-on-demand-storage: False #if True, allows on-demand storage to be added to CI nodes
-  ci-allow-load-shedding: False #if True, allows load shedding to be added to CI nodes
+  ci-allow-load-shedding: False #if True, allows load shedding generator to be added to CI nodes
 
 
 ###################

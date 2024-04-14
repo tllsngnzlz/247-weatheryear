@@ -600,29 +600,33 @@ def fix_network(n):
         fix_load =  [col for col in n.loads_t.p_set.columns if name in col]
         n.loads_t.p_set.loc[:,fix_load] = 0.
         
-    if fix_dict['ci-generation'] or fix_dict['ci-storage']:
+    if fix_dict['ci-node']:
         """overwrite p_nom, e_nom and load values to values in supplied network file. only overwrite generators, links and storages in network, which 
-        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False. funcion does allow to fix generation and storage capacities separately.
+        belong to the CI node. the CI node can be identified by name variable. Afterwards set extendable flag to False.
+        Also imports from the grid are forbidden to avoid cfe scores below 1 via cheap grid imports and storage arbitrage.
         To avoid infeasabilies use the flags ci-allow-on-demand-storage and ci-allow-load-shedding."""
         n_opt=pypsa.Network(snakemake.params.ci_path)
-        if fix_dict['ci-generation']:
-            #Generators aka renewable capacities
-            fix_generators = n.generators.index[n.generators.index.str.contains(name)]
-            n.generators.loc[fix_generators,'p_nom'] = n_opt.generators.loc[fix_generators,'p_nom_opt']
-            n.generators.loc[fix_generators,'p_nom_extendable'] = False
-            #Links acting as grid connection capacities
-            fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("import|export")]
-            n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
-            n.links.loc[fix_links,'p_nom_extendable'] = False
-        if fix_dict['ci-storage']:
-            #Links acting as charger/discharging capacities
-            fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("charger|discharger|H2 Electrolysis|H2 Fuel Cell")]
-            n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
-            n.links.loc[fix_links,'p_nom_extendable'] = False
-            #Stores aka H2 and battery storage capacities
-            fix_stores = n.stores.index[n.stores.index.str.contains(name)]
-            n.stores.loc[fix_stores,'e_nom'] = n_opt.stores.loc[fix_stores,'e_nom_opt']
-            n.stores.loc[fix_stores,'e_nom_extendable'] = False
+        #Generators aka renewable capacities
+        fix_generators = n.generators.index[n.generators.index.str.contains(name)]
+        n.generators.loc[fix_generators,'p_nom'] = n_opt.generators.loc[fix_generators,'p_nom_opt']
+        n.generators.loc[fix_generators,'p_nom_extendable'] = False
+        #Links acting as grid connection capacities
+        fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("export")]
+        n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
+        n.links.loc[fix_links,'p_nom_extendable'] = False        
+        fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("import")]
+        n.links.loc[fix_links,'p_nom'] = 0. #not allowing imports
+        n.links.loc[fix_links,'p_nom_extendable'] = False
+        
+        #Links acting as charger/discharging capacities
+        fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("charger|discharger|H2 Electrolysis|H2 Fuel Cell")]
+        n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
+        n.links.loc[fix_links,'p_nom_extendable'] = False
+        #Stores aka H2 and battery storage capacities
+        fix_stores = n.stores.index[n.stores.index.str.contains(name)]
+        n.stores.loc[fix_stores,'e_nom'] = n_opt.stores.loc[fix_stores,'e_nom_opt']
+        n.stores.loc[fix_stores,'e_nom_extendable'] = False
+
         if fix_dict['ci-allow-load-shedding']:
             #add a load shedding generator into ci node to have load shedding at ci-node
             n.add("Generator",
@@ -630,7 +634,7 @@ def fix_network(n):
                 bus=name,
                 carrier="load shedding",
                 p_nom_extendable=False,
-                p_nom=n.loads_t.p_set[name].max(),
+                p_nom=n.loads_t.p_set[f"{name} load"].max(),
                 p_nom_pu=1,
                 marginal_cost=3000)
         if fix_dict["ci-allow-on-demand-storage"]:
@@ -641,8 +645,8 @@ def fix_network(n):
                 e_cyclic=True,
                 e_nom_extendable=True,
                 carrier="battery",
-                capital_cost=n.stores.at[f"{node} battery"+"-{}".format(year), "capital_cost"]*2,
-                lifetime=n.stores.at[f"{node} battery"+"-{}".format(year), "lifetime"]*2
+                capital_cost=n.stores.at[f"{name} battery"+"-{}".format(year), "capital_cost"]*2,
+                lifetime=n.stores.at[f"{name} battery"+"-{}".format(year), "lifetime"]*2
                 )
 
 
@@ -760,8 +764,12 @@ def solve_network(n, policy, penetration, tech_palette):
             (-1*ci_export*weights) + 
             (ci_import*n.links.at[name + " import","efficiency"]*grid_supply_cfe*weights)
             ).sum() # linear expr
-
-        lhs = gen_sum + discharge_sum + charge_sum  + grid_sum
+        #add load shedding to make the model feasible with fixed capacities
+        if snakemake.config['fixed-capacity']['ci-node']:
+            load_shedding = (n.model['Generator-p'].loc[:,[name + " load shedding"]]*weights).sum()
+            lhs = gen_sum + discharge_sum + charge_sum  + grid_sum + load_shedding
+        else:
+            lhs = gen_sum + discharge_sum + charge_sum  + grid_sum
         total_load = (n.loads_t.p_set[name + " load"]*weights).sum() # number
         
         n.model.add_constraints(lhs >= penetration*total_load, name="CFE_constraint")
@@ -910,8 +918,9 @@ def solve_network(n, policy, penetration, tech_palette):
             print("no target set")
         elif policy == "cfe":
             print("setting CFE target of",penetration)
-            cfe_constraints(n)
-            excess_constraints(n, 0.)
+            cfe_constraints(n)            
+            if not snakemake.config['fixed-capacity']['ci-node']: # with fixed ci generation in scenario 3 allow export
+                excess_constraints(n, 0.)
         elif policy == "res":
             print("setting annual RES target of",penetration)
             res_constraints(n)

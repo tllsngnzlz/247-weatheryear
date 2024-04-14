@@ -228,6 +228,9 @@ def summarise_network(n, policy, tech_palette):
         else:
             results['ci_generation_' + discharger.replace(' ', '_')] = 0.
 
+    #account for load shedding
+    results['ci_generation_load_shedding'] = n.generators_t.p[f"{name} load shedding"].multiply(n.snapshot_weightings["generators"],axis=0).sum() if f"{name} load shedding" in n.generators_t.p else 0.
+
     # 5: Storing invested capacities in the rest of energy system
 
     # Generators
