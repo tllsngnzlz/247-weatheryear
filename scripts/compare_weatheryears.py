@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import numpy as np
+from solve_network import geoscope
 
 def concatenate_summary_files(summary_files):
     dfs = []
@@ -191,6 +192,7 @@ def plot_rldc(files):
     
     policies = snakemake.config["scenario"]["policy"]
     name = snakemake.config['ci']['name']
+    node = geoscope(snakemake.config['scenario']['zone'][0], snakemake.config['area'])['node']
 
     fig, axes = plt.subplots(len(policies), 2, figsize=(18, 15))
     axes = np.atleast_2d(axes)
@@ -201,7 +203,7 @@ def plot_rldc(files):
         for selected_file in selected_files:
             year = selected_file.split('/')[-2]
             df = pd.read_csv(selected_file, index_col=0)
-            df['total'].plot(ax=axes[policy_idx, 0], title=policy)
+            df[node].plot(ax=axes[policy_idx, 0], title=policy)
             df[f"{name} load"].plot(ax=axes[policy_idx, 1], title=policy)
             df['year'] = year
             df['policy'] = policy
@@ -211,7 +213,7 @@ def plot_rldc(files):
     dfs = pd.concat(dfs)
     dfs.to_csv(snakemake.output.rldc_csv)
     agg_df = dfs.groupby(level=['policy', 'year']).sum().assign(variable='rldc_sum')
-    agg_df = agg_df.rename(columns={'total': 'value'})
+    agg_df = agg_df.rename(columns={node : 'value'})
     agg_df = agg_df.set_index('variable', append=True).reorder_levels(['variable', 'year', 'policy'])
     global pick_df 
     pick_df = pick_df.melt(ignore_index=False, var_name='policy', value_name='value')
