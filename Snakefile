@@ -43,7 +43,13 @@ rule merge_all_plots:
         zone=config["scenario"]["zone"],
         palette=config["scenario"]["palette"],
         weather_year=parse_year_wildcard(config["scenario"]["weather_year"])
-        )
+        ),
+        expand(RDIR + "/csvs/{participation}/{year}/{zone}/{palette}/summary_weather_years.csv",
+        participation=config["scenario"]["participation"],
+        year=config["scenario"]["year"],
+        zone=config["scenario"]["zone"],
+        palette=config["scenario"]["palette"]
+        ),
 
 
 rule plot_summary_all_networks:
