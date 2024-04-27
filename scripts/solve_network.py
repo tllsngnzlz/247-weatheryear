@@ -611,12 +611,13 @@ def fix_network(n):
         n.generators.loc[fix_generators,'p_nom'] = n_opt.generators.loc[fix_generators,'p_nom_opt']
         n.generators.loc[fix_generators,'p_nom_extendable'] = False
         #Links acting as grid connection capacities
-        fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("export")]
+        fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("export|import")]
         n.links.loc[fix_links,'p_nom'] = n_opt.links.loc[fix_links,'p_nom_opt']
         n.links.loc[fix_links,'p_nom_extendable'] = False        
+        """#blocking imports to avoid arbitrage
         fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("import")]
         n.links.loc[fix_links,'p_nom'] = 0. #not allowing imports
-        n.links.loc[fix_links,'p_nom_extendable'] = False
+        n.links.loc[fix_links,'p_nom_extendable'] = False"""
         
         #Links acting as charger/discharging capacities
         fix_links = n.links.index[n.links.index.str.contains(name) & n.links.index.str.contains("charger|discharger|H2 Electrolysis|H2 Fuel Cell")]
@@ -645,8 +646,8 @@ def fix_network(n):
                 e_cyclic=True,
                 e_nom_extendable=True,
                 carrier="battery",
-                capital_cost=n.stores.at[f"{name} battery"+"-{}".format(year), "capital_cost"]*2,
-                lifetime=n.stores.at[f"{name} battery"+"-{}".format(year), "lifetime"]*2
+                capital_cost=n.stores.at[f"{name} battery"+"-{}".format(year), "capital_cost"]*2, # to be changed to a hard coded value
+                lifetime=n.stores.at[f"{name} battery"+"-{}".format(year), "lifetime"]
                 )
 
 
