@@ -212,7 +212,7 @@ def plot_rldc(files):
             dfs.append(df)
     dfs = pd.concat(dfs)
     dfs.to_csv(snakemake.output.rldc_csv)
-    agg_df = dfs.groupby(level=['policy', 'year']).sum().assign(variable='rldc_sum')
+    agg_df = dfs.groupby(level=['policy', 'year']).mean().assign(variable='rldc_sum')
     agg_df = agg_df.rename(columns={node : 'value'})
     agg_df = agg_df.set_index('variable', append=True).reorder_levels(['variable', 'year', 'policy'])
     global pick_df 
